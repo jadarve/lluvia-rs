@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 #[repr(u8)]
 pub enum AdaptationFieldControl {
     Reserved = 0b00,
@@ -14,16 +14,22 @@ impl From<u8> for AdaptationFieldControl {
     /// and hence this method will alawys return an AdaptationFieldControl enum.
     fn from(value: u8) -> Self {
         match value & 0b0000_0011 {
-            0 => AdaptationFieldControl::Reserved,
-            1 => AdaptationFieldControl::PayloadOnly,
-            2 => AdaptationFieldControl::AdaptationFieldOnly,
-            3 => AdaptationFieldControl::AdaptationFieldAndPayload,
+            0b00 => AdaptationFieldControl::Reserved,
+            0b01 => AdaptationFieldControl::PayloadOnly,
+            0b10 => AdaptationFieldControl::AdaptationFieldOnly,
+            0b11 => AdaptationFieldControl::AdaptationFieldAndPayload,
             _ => unreachable!("Unexpected adaptation field control value: {value:0X}"),
         }
     }
 }
 
-#[derive(Debug)]
+// impl std::fmt::Display for AdaptationFieldControl {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(f, "{:?}", self)
+//     }
+// }
+
+#[derive(Debug, Clone, Copy)]
 #[repr(u8)]
 pub enum TransportScramblingControl {
     NotScrambled = 0b00,
@@ -39,11 +45,17 @@ impl From<u8> for TransportScramblingControl {
     /// and hence this method will always return a TransportScramblingControl enum.
     fn from(value: u8) -> Self {
         match value & 0b0000_0011 {
-            0 => TransportScramblingControl::NotScrambled,
-            1 => TransportScramblingControl::UserDefined1,
-            2 => TransportScramblingControl::UserDefined2,
-            3 => TransportScramblingControl::UserDefined3,
+            0b00 => TransportScramblingControl::NotScrambled,
+            0b01 => TransportScramblingControl::UserDefined1,
+            0b10 => TransportScramblingControl::UserDefined2,
+            0b11 => TransportScramblingControl::UserDefined3,
             _ => unreachable!("Unexepected transport scrambling control value: {value:0X}"),
         }
     }
 }
+
+// impl std::fmt::Display for TransportScramblingControl {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(f, "{:?}", self)
+//     }
+// }
