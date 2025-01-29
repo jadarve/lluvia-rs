@@ -80,19 +80,44 @@ impl PacketView {
 
         match adaptation_field_control {
             AdaptationFieldControl::AdaptationFieldAndPayload => {
-                let payload_start = 4 + adaptation_field_length + 1;
-                if payload_start < 187 {
-                    Ok(PayloadView::new(&self.data[payload_start..]))
+                let payload_start: usize = 4 + adaptation_field_length + 1;
+
+                // there should be at least one byte of payload
+                if payload_start < PACKET_SIZE - 1 {
+                    Ok(PayloadView::new(self.data.slice(payload_start..)))
                 } else {
                     Err(TsError::InvalidPayloadStartOffset(payload_start))
                 }
             }
             AdaptationFieldControl::PayloadOnly => {
                 let payload_start = 4;
-                Ok(PayloadView::new(&self.data[payload_start..]))
+                Ok(PayloadView::new(self.data.slice(payload_start..)))
             }
             _ => Err(TsError::NoAdaptationField),
         }
+    }
+
+    pub fn is_valid(&self) -> Result<(), TsError> {
+        if self.sync_byte() != PACKET_SYNC_BYTE {
+            return Err(TsError::InvalidSyncByte(self.sync_byte()));
+        }
+
+        // parsing the adaptation field and/or payload should succeed
+        match self.adaptation_field_control() {
+            AdaptationFieldControl::AdaptationFieldOnly => {
+                self.adaptation_field()?;
+            }
+            AdaptationFieldControl::AdaptationFieldAndPayload => {
+                self.adaptation_field()?;
+                self.payload()?;
+            }
+            AdaptationFieldControl::PayloadOnly => {
+                self.payload()?;
+            }
+            _ => {}
+        }
+
+        Ok(())
     }
 }
 
@@ -259,12 +284,12 @@ impl std::fmt::Debug for AdaptationFieldView {
     }
 }
 
-pub struct PayloadView<'a> {
-    data: &'a [u8],
+pub struct PayloadView {
+    data: bytes::Bytes,
 }
 
-impl<'a> PayloadView<'a> {
-    pub fn new(data: &'a [u8]) -> Self {
+impl PayloadView {
+    pub fn new(data: bytes::Bytes) -> Self {
         PayloadView { data }
     }
 
@@ -273,8 +298,8 @@ impl<'a> PayloadView<'a> {
     }
 }
 
-impl std::fmt::Debug for PayloadView<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl std::fmt::Debug for PayloadView {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("PayloadView")
             .field("length", &self.data.len())
             .field("data", &to_hex_string(&self.data))
@@ -299,6 +324,7 @@ mod tests {
         for i in 0..data.len() / PACKET_SIZE {
             let packet_slice = data.slice(i * PACKET_SIZE..(i + 1) * PACKET_SIZE);
             let packet_view = PacketView::new(packet_slice);
+            assert!(packet_view.is_valid().is_ok());
             println!("{:?}", packet_view);
         }
 

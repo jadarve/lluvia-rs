@@ -43,6 +43,7 @@ mod tests {
 
         for i in 0..reader.len() {
             let pkt = reader.at(i)?;
+            assert!(pkt.is_valid().is_ok());
             println!("Packet: {pkt:?}");
 
             // TODO: should assert that the packet is well formed
