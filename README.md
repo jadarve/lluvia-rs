@@ -1,4 +1,4 @@
-# media-types
+# rs-media-streaming
 
 ## Generate sample data
 

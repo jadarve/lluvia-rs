@@ -1,1 +1,1 @@
-pub mod media_types;
+pub mod media_streaming;

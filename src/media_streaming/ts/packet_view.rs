@@ -1,4 +1,4 @@
-use crate::media_types::common::to_hex_string;
+use crate::media_streaming::common::to_hex_string;
 
 use super::{AdaptationFieldControl, TransportScramblingControl, TsError};
 
@@ -8,7 +8,6 @@ pub const PACKET_SYNC_BYTE: u8 = 0x47;
 /// A view of a Transport Stream packet from a slice of bytes.
 /// See ISO/IEC 13818-1:2023, section 2.4.3
 pub struct PacketView {
-    // data: &'a [u8; PACKET_SIZE],
     data: bytes::Bytes,
 }
 
@@ -285,7 +284,6 @@ impl std::fmt::Debug for PayloadView<'_> {
 
 #[cfg(test)]
 mod tests {
-    use crate::media_types::ts::packet_view;
 
     use super::*;
 
