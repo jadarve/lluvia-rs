@@ -7,13 +7,14 @@ pub const PACKET_SYNC_BYTE: u8 = 0x47;
 
 /// A view of a Transport Stream packet from a slice of bytes.
 /// See ISO/IEC 13818-1:2023, section 2.4.3
-pub struct PacketView<'a> {
-    data: &'a [u8; PACKET_SIZE],
+pub struct PacketView {
+    // data: &'a [u8; PACKET_SIZE],
+    data: bytes::Bytes,
 }
 
-impl<'a> PacketView<'a> {
-    pub fn new(data: &'a [u8; PACKET_SIZE]) -> Self {
-        PacketView { data }
+impl PacketView {
+    pub fn new(data: bytes::Bytes) -> Self {
+        PacketView { data: data }
     }
 
     pub fn sync_byte(&self) -> u8 {
@@ -57,7 +58,7 @@ impl<'a> PacketView<'a> {
         match (adaptation_field_control, adaptation_field_length) {
             // the only allowed length for AdaptationFieldOnly is 183
             (AdaptationFieldControl::AdaptationFieldOnly, 183) => {
-                Ok(AdaptationFieldView::new(&self.data[4..]))
+                Ok(AdaptationFieldView::new(self.data.slice(4..)))
             }
             // any other length is invalid
             (AdaptationFieldControl::AdaptationFieldOnly, _) => {
@@ -68,7 +69,7 @@ impl<'a> PacketView<'a> {
             }
             // if there is adaptation field and payload, the length must be between 0 and 182 inclusive
             (AdaptationFieldControl::AdaptationFieldAndPayload, 0..=182) => Ok(
-                AdaptationFieldView::new(&self.data[4..4 + adaptation_field_length + 1]),
+                AdaptationFieldView::new(self.data.slice(4..4 + adaptation_field_length + 1)),
             ),
             _ => Err(TsError::NoAdaptationField),
         }
@@ -96,8 +97,8 @@ impl<'a> PacketView<'a> {
     }
 }
 
-impl std::fmt::Debug for PacketView<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl std::fmt::Debug for PacketView {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let mut w = f.debug_struct("PacketView");
         w.field("sync_byte", &self.sync_byte())
             .field(
@@ -137,12 +138,14 @@ impl std::fmt::Debug for PacketView<'_> {
     }
 }
 
-pub struct AdaptationFieldView<'a> {
-    data: &'a [u8],
+pub struct AdaptationFieldView {
+    data: bytes::Bytes,
 }
 
-impl<'a> AdaptationFieldView<'a> {
-    pub fn new(data: &'a [u8]) -> Self {
+impl AdaptationFieldView {
+    const DISCONTINUITY_INDICATOR_MASK: u8 = 0b1000_0000;
+
+    pub fn new(data: bytes::Bytes) -> Self {
         AdaptationFieldView { data }
     }
 
@@ -151,8 +154,9 @@ impl<'a> AdaptationFieldView<'a> {
     }
 
     pub fn discontinuity_indicator(&self) -> Result<bool, TsError> {
+        // TODO: could extract all the flags in a single
         if self.length() > 0 {
-            Ok((self.data[1] & 0b1000_0000) != 0)
+            Ok((self.data[1] & Self::DISCONTINUITY_INDICATOR_MASK) != 0)
         } else {
             Err(TsError::EmptyAdaptationField(
                 "attempting to read discontinuity indicator".to_string(),
@@ -231,8 +235,8 @@ impl<'a> AdaptationFieldView<'a> {
     }
 }
 
-impl std::fmt::Debug for AdaptationFieldView<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl std::fmt::Debug for AdaptationFieldView {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("AdaptationFieldView")
             .field("length", &self.length())
             .field("discontinuity_indicator", &self.discontinuity_indicator())
@@ -281,26 +285,23 @@ impl std::fmt::Debug for PayloadView<'_> {
 
 #[cfg(test)]
 mod tests {
+    use crate::media_types::ts::packet_view;
+
     use super::*;
 
     #[test]
     fn test_read_file() -> Result<(), String> {
-        let data = std::fs::read("local/sample.ts").map_err(|e| e.to_string())?;
+        let data = {
+            let bytes_vec = std::fs::read("local/sample.ts").map_err(|e| e.to_string())?;
+            bytes::Bytes::from_owner(bytes_vec)
+        };
 
         print!("data len: {}", data.len());
 
         for i in 0..data.len() / PACKET_SIZE {
-            let packet_slice: &[u8; 188] = &data[i * PACKET_SIZE..(i + 1) * PACKET_SIZE]
-                .try_into()
-                .unwrap();
-
+            let packet_slice = data.slice(i * PACKET_SIZE..(i + 1) * PACKET_SIZE);
             let packet_view = PacketView::new(packet_slice);
             println!("{:?}", packet_view);
-
-            // given the packet slice, we can create a TsPacket
-
-            // let packet = TsPacket::from_bytes(packet);
-            // println!("{:?}", packet_slice);
         }
 
         Ok(())
