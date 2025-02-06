@@ -1,4 +1,4 @@
-use crate::media_streaming::common::to_hex_string;
+use crate::common::to_hex_string;
 
 use super::{AdaptationFieldControl, TransportScramblingControl, TsError};
 
@@ -315,7 +315,7 @@ mod tests {
     #[test]
     fn test_read_file() -> Result<(), String> {
         let data = {
-            let bytes_vec = std::fs::read("local/sample.ts").map_err(|e| e.to_string())?;
+            let bytes_vec = std::fs::read("../../local/sample.ts").map_err(|e| e.to_string())?;
             bytes::Bytes::from_owner(bytes_vec)
         };
 

@@ -38,7 +38,7 @@ mod tests {
 
     #[test]
     fn test_read_file() -> Result<()> {
-        let reader = TsMemoryReader::new("local/sample.ts")?;
+        let reader = TsMemoryReader::new("../../local/sample.ts")?;
         assert!(reader.len() > 0, "There should be packets in the file");
 
         for i in 0..reader.len() {
