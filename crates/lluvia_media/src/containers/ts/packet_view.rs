@@ -2,11 +2,16 @@ use crate::common::to_hex_string;
 
 use super::{AdaptationFieldControl, TransportScramblingControl, TsError};
 
+#[cfg(python_bindings)]
+use pyo3::prelude::*;
+
 pub const PACKET_SIZE: usize = 188;
 pub const PACKET_SYNC_BYTE: u8 = 0x47;
 
 /// A view of a Transport Stream packet from a slice of bytes.
 /// See ISO/IEC 13818-1:2023, section 2.4.3
+// #[cfg(python_bindings), pyclass]
+#[cfg_attr(feature = "python_bindings", pyclass)]
 pub struct PacketView {
     data: bytes::Bytes,
 }

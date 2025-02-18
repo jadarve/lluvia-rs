@@ -1,4 +1,26 @@
-# rs-media-streaming
+# Lluvia-rs
+
+Base dependencies for installing Python 3.12 from pyenv
+
+```bash
+sudo apt install -y \
+    libbz2-dev \
+    libctypes-ocaml-dev \
+    libcurses-ocaml-dev \
+    libffi-dev \
+    liblzma-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    tk-dev
+```
+
+Python config
+
+```bash
+pyenv virtualenv 3.12.9 lluvia-rs
+pyenv activate lluvia-rs
+pip install maturin
+```
 
 ## Generate sample data
 
@@ -30,3 +52,9 @@ sudo apt install -y \
     libgstreamer-plugins-base1.0-dev \
     libgstreamer1.0-dev
 ```
+
+
+## References
+
+* https://stackoverflow.com/questions/78211399/how-can-i-separate-a-rust-library-and-the-pyo3-exported-python-extensions-which
+* https://pypi.org/project/setuptools-rust/
