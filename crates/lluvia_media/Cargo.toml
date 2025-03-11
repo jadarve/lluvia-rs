@@ -5,8 +5,6 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-# [features]
-# python_bindings = ["dep:pyo3"]
 
 # Try to keep the dependencies to a minimum
 [dependencies]
@@ -15,9 +13,6 @@ anyhow = { version = "*" }
 clap = { version = "4.5.4", features = ["derive"] }
 bytes = { version = "1.9.0" }
 
-# pyo3 = { version = "*", features = ["anyhow"], optional = true }
-pyo3 = { version = "*", features = ["anyhow"] }
-
 [dev-dependencies]
 rstest = { version = "0.18.2" }
 
@@ -25,3 +20,7 @@ rstest = { version = "0.18.2" }
 [lib]
 name = "lluvia_media"
 crate-type = ["cdylib"]
+
+
+# [lints.rust]
+# unexpected_cfgs = { level = "deny", check-cfg = ['cfg(python_bindings)'] }
