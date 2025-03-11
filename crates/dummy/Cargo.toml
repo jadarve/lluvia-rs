@@ -1,5 +1,5 @@
 [package]
-name = "lluvia_media"
+name = "dummy"
 version = "0.0.1"
 edition = "2021"
 
@@ -11,6 +11,10 @@ thiserror = { version = "1.0.63" }
 anyhow = { version = "*" }
 clap = { version = "4.5.4", features = ["derive"] }
 bytes = { version = "1.9.0" }
+lluvia_media = { path = "../lluvia_media" }
 
 [dev-dependencies]
 rstest = { version = "0.18.2" }
+
+[[bin]]
+name = "dummy"
