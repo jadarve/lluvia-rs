@@ -8,13 +8,13 @@ edition = "2021"
 
 # Try to keep the dependencies to a minimum
 [dependencies]
-thiserror = { version = "1.0.63" }
-anyhow = { version = "*" }
-clap = { version = "4.5.4", features = ["derive"] }
-bytes = { version = "1.9.0" }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
+bytes = { workspace = true }
 
 [dev-dependencies]
-rstest = { version = "0.18.2" }
+rstest = { workspace = true }
 
 
 [lib]

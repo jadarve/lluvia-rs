@@ -1,0 +1,13 @@
+[package]
+name = "lluvia_gpu"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+bitflags = { workspace = true }
+bon = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+tokio-macros = { workspace = true }
+wgpu = { workspace = true, features = ["webgpu", "glsl"] }
