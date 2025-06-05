@@ -8,9 +8,11 @@ members = ["crates/lluvia_media", "crates/lluvia_gpu"]
 [workspace.dependencies]
 anyhow = { version = "*" }
 bitflags = { version = "2.9.0" }
-bon ={ version = "3.5.2" }
+bon = { version = "3.5.2" }
+bytemuck = { version = "*" }
 bytes = { version = "1.9.0" }
 clap = { version = "4.5.4" }
+flume = { version = "0.11" }
 rstest = { version = "0.18.2" }
 thiserror = { version = "1.0.63" }
 tokio = { version = "1", features = ["full"] }

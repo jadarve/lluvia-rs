@@ -117,6 +117,29 @@ impl Session {
         Ok(crate::Buffer { handle })
     }
 
+    pub async fn buffer_map_read(&self, buffer: &Buffer) -> Result<Vec<u8>, LluviaGpuError> {
+        ///////////////////////////////////////////////////////
+        // read output buffer
+        let buffer_slice = buffer.handle.slice(..);
+
+        let (sender, receiver) = flume::bounded(1);
+        buffer_slice.map_async(wgpu::MapMode::Read, move |r| sender.send(r).unwrap());
+
+        self.device.poll(wgpu::Maintain::wait()).panic_on_timeout();
+
+        if let Ok(Ok(())) = receiver.recv_async().await {
+            let data = {
+                let data = buffer_slice.get_mapped_range();
+                data.to_vec()
+            };
+
+            buffer.handle.unmap();
+            Ok(data)
+        } else {
+            Err(LluviaGpuError::BufferMapError("map read error".to_string()))
+        }
+    }
+
     ///////////////////////////////////////////////////////////////////////////
     // Shader module
 

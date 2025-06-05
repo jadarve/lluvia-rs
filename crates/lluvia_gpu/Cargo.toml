@@ -7,6 +7,8 @@ edition = "2021"
 anyhow = { workspace = true }
 bitflags = { workspace = true }
 bon = { workspace = true }
+bytemuck = { workspace = true }
+flume = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 tokio-macros = { workspace = true }

@@ -25,6 +25,11 @@ impl CommandEncoder {
         cpass.dispatch_workgroups(4, 1, 1);
     }
 
+    pub async fn copy_buffer_to_buffer(&mut self, src: &crate::Buffer, dst: &crate::Buffer) {
+        self.handle
+            .copy_buffer_to_buffer(&src.handle, 0, &dst.handle, 0, src.size() as u64);
+    }
+
     pub fn finish(self) -> crate::CommandBuffer {
         crate::CommandBuffer {
             handle: self.handle.finish(),

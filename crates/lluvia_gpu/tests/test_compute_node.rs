@@ -1,5 +1,6 @@
 use anyhow::Result;
 use lluvia_gpu as llgpu;
+use wgpu::core::command;
 
 const SHADER_CODE_WGSL: &str = r#"
 @group(0) @binding(0)
@@ -53,10 +54,20 @@ async fn test_compute_node() -> Result<()> {
     // then I can create a buffer and bind it to the compute node
     let buffer_desc = llgpu::BufferDescriptor::builder()
         .label("test_buffer".to_owned())
-        .size(1024)
-        .usage(llgpu::BufferUsages::STORAGE | llgpu::BufferUsages::COPY_DST)
+        .size(1024 * std::mem::size_of::<f32>())
+        .usage(llgpu::BufferUsages::STORAGE | llgpu::BufferUsages::COPY_SRC)
         .build();
     let buffer = session.create_buffer_from_descriptor(&buffer_desc).await?;
+
+    // copy the result to a staging buffer
+    let staging_buffer_desc = llgpu::BufferDescriptor::builder()
+        .label("staging_buffer".to_owned())
+        .size(1024 * std::mem::size_of::<f32>())
+        .usage(llgpu::BufferUsages::COPY_DST | llgpu::BufferUsages::MAP_READ)
+        .build();
+    let staging_buffer = session
+        .create_buffer_from_descriptor(&staging_buffer_desc)
+        .await?;
 
     compute_node.bind("outputBuffer", &buffer).await;
 
@@ -64,11 +75,21 @@ async fn test_compute_node() -> Result<()> {
     let mut command_encoder = session.create_command_encoder();
 
     command_encoder.run_compute_node(&compute_node).await;
+    command_encoder
+        .copy_buffer_to_buffer(&buffer, &staging_buffer)
+        .await;
 
     // run the node
     let command_buffer = command_encoder.finish();
 
     session.run_command_buffer(&command_buffer);
+
+    let host_buffer = session.buffer_map_read(&staging_buffer).await?;
+
+    let data = bytemuck::cast_slice::<u8, f32>(&host_buffer);
+    println!("data: {data:?}");
+
+    // map the staging buffer to read the results
 
     Ok(())
 }
