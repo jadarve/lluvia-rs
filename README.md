@@ -53,6 +53,17 @@ sudo apt install -y \
     libgstreamer1.0-dev
 ```
 
+## WASM
+
+Wasm-pack: https://rustwasm.github.io/wasm-pack/installer/
+
+```bash
+curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+```
+
+```
+wasm-pack build --out-dir '../../pkg' crates/lluvia_gpu
+```
 
 ## References
 
