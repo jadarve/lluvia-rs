@@ -18,3 +18,5 @@ thiserror = { version = "1.0.63" }
 tokio = { version = "1", features = ["full"] }
 tokio-macros = { version = "~2.5.0" }
 wgpu = { version = "24.0.3", features = ["webgpu", "glsl"] }
+
+wasm-bindgen-test = "0.3.0"

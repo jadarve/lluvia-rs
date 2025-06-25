@@ -3,6 +3,9 @@ name = "lluvia_gpu"
 version = "0.0.1"
 edition = "2021"
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 anyhow = { workspace = true }
 bitflags = { workspace = true }
@@ -13,3 +16,6 @@ thiserror = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 tokio-macros = { workspace = true }
 wgpu = { workspace = true, features = ["webgpu", "glsl"] }
+
+[dev-dependencies]
+wasm-bindgen-test = { workspace = true }

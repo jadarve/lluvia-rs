@@ -19,7 +19,7 @@ rstest = { workspace = true }
 
 [lib]
 name = "lluvia_media"
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 
 # [lints.rust]

@@ -1,5 +1,6 @@
 use anyhow::Result;
 use lluvia_gpu as llgpu;
+use wasm_bindgen_test::*;
 use wgpu::core::command;
 
 const SHADER_CODE_WGSL: &str = r#"
@@ -25,6 +26,7 @@ fn main(
 
 // FIXME: Should be able to run in WASM environment
 #[tokio::test]
+#[wasm_bindgen_test]
 async fn test_compute_node() -> Result<()> {
     let session = llgpu::Session::new().await;
     assert!(session.is_ok());
