@@ -55,14 +55,28 @@ sudo apt install -y \
 
 ## WASM
 
+Install Node.js: https://nodejs.org/en/download
+
 Wasm-pack: https://rustwasm.github.io/wasm-pack/installer/
 
 ```bash
 curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 ```
 
+Build
+
 ```
 wasm-pack build --out-dir '../../pkg' crates/lluvia_gpu
+wasm-pack build --out-dir '../../pkg' crates/lluvia_media
+```
+
+Test
+
+```
+wasm-pack test --headless --firefox --out-dir '../../pkg' crates/lluvia_gpu
+
+cd crates/lluvia_media
+wasm-pack test --node
 ```
 
 ## References
