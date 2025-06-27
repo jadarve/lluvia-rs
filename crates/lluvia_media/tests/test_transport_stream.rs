@@ -2,9 +2,11 @@ use wasm_bindgen_test::wasm_bindgen_test;
 
 use lluvia_media::containers::ts;
 
-#[wasm_bindgen_test]
+#[wasm_bindgen_test(unsupported = test)]
 // #[test]
 pub fn test_packed_view() -> Result<(), String> {
+    wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
+
     let data = {
         // let bytes_vec = std::fs::read("../../local/sample.ts").map_err(|e| e.to_string())?;
         let bytes_vec = vec![

@@ -25,3 +25,4 @@ wgpu = { workspace = true, features = ["webgpu", "glsl"] }
 
 [dev-dependencies]
 wasm-bindgen-test = { workspace = true }
+pollster = { workspace = true }

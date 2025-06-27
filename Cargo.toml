@@ -1,11 +1,12 @@
 [workspace]
-
+resolver = "2"
 members = ["crates/lluvia_media", "crates/lluvia_gpu"]
 
 
 ###########################################################
 # Dependencies
 [workspace.dependencies]
+tokio = { version = "1" }
 anyhow = { version = "*" }
 bitflags = { version = "2.9.0" }
 bon = { version = "3.5.2" }
@@ -13,10 +14,12 @@ bytemuck = { version = "*" }
 bytes = { version = "1.9.0" }
 clap = { version = "4.5.4" }
 flume = { version = "0.11" }
+pollster = { version = "0.3.0" }
 rstest = { version = "0.18.2" }
 thiserror = { version = "1.0.63" }
-tokio = { version = "1", features = ["full"] }
 tokio-macros = { version = "~2.5.0" }
-wgpu = { version = "24.0.3", features = ["webgpu", "glsl"] }
+wgpu = { version = "24.0.3" }
 
+wasm-bindgen = "0.2.87"
+wasm-bindgen-futures = "0.4.42"
 wasm-bindgen-test = "0.3.0"
