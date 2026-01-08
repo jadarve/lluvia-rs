@@ -7,15 +7,22 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+tokio = { workspace = true, features = [
+    "sync",
+    "io-util",
+    "macros",
+    "rt",
+    "time",
+] }
 anyhow = { workspace = true }
 bitflags = { workspace = true }
 bon = { workspace = true }
 bytemuck = { workspace = true }
 flume = { workspace = true }
 thiserror = { workspace = true }
-tokio = { workspace = true, features = ["full"] }
 tokio-macros = { workspace = true }
 wgpu = { workspace = true, features = ["webgpu", "glsl"] }
 
 [dev-dependencies]
 wasm-bindgen-test = { workspace = true }
+pollster = { workspace = true }
