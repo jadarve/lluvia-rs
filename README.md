@@ -63,6 +63,11 @@ Wasm-pack: https://rustwasm.github.io/wasm-pack/installer/
 curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 ```
 
+```bash
+# kee chrome and chromedriver versions in sync
+sudo apt install chromium-chromedriver
+```
+
 Build
 
 ```
