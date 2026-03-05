@@ -1,5 +1,5 @@
 use anyhow::Result;
-use lluvia_gpu as llgpu;
+use lluvia_webgpu as llgpu;
 
 // FIXME: Should be able to run in WASM environment
 #[tokio::test]

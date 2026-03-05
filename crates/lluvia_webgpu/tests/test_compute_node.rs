@@ -3,7 +3,7 @@ mod tests {
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
     use anyhow::Result;
-    use lluvia_gpu as llgpu;
+    use lluvia_webgpu as llgpu;
     use wasm_bindgen_test::*;
 
     const SHADER_CODE_WGSL: &str = r#"

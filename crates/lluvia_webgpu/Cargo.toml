@@ -1,5 +1,5 @@
 [package]
-name = "lluvia_gpu"
+name = "lluvia_webgpu"
 version = "0.0.1"
 edition = "2021"
 

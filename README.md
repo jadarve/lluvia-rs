@@ -71,14 +71,14 @@ sudo apt install chromium-chromedriver
 Build
 
 ```
-wasm-pack build --out-dir '../../pkg' crates/lluvia_gpu
+wasm-pack build --out-dir '../../pkg' crates/lluvia_webgpu
 wasm-pack build --out-dir '../../pkg' crates/lluvia_media
 ```
 
 Test
 
 ```
-wasm-pack test --headless --firefox --out-dir '../../pkg' crates/lluvia_gpu
+wasm-pack test --headless --firefox --out-dir '../../pkg' crates/lluvia_webgpu
 
 cd crates/lluvia_media
 wasm-pack test --node
