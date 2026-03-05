@@ -1,0 +1,8 @@
+[package]
+name = "lluvia_gpu"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+vulkano = { workspace = true }
+thiserror = { workspace = true }

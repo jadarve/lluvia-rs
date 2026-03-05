@@ -85,7 +85,7 @@ fn main(
         // run the node
         let command_buffer = command_encoder.finish();
 
-        session.run_command_buffer(&command_buffer);
+        session.run_command_buffer(command_buffer);
 
         let host_buffer = session.buffer_map_read(&staging_buffer).await?;
 

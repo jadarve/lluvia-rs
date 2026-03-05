@@ -39,13 +39,10 @@ impl Session {
             force_fallback_adapter: false,
         };
 
-        let adapter =
-            instance
-                .request_adapter(&options)
-                .await
-                .ok_or(SessionError::CreateSession(
-                    "No GPU adapter available".to_string(),
-                ))?;
+        let adapter = instance
+            .request_adapter(&options)
+            .await
+            .map_err(|e| SessionError::CreateSession(e.to_string()))?;
 
         println!("Adapter: {:?}", adapter.get_info());
 
@@ -55,7 +52,7 @@ impl Session {
             ..Default::default()
         };
         let (device, queue) = adapter
-            .request_device(&desc, None)
+            .request_device(&desc)
             .await
             .map_err(|e| SessionError::CreateDevice(format!("Unable to create device: {e}")))?;
 
@@ -77,11 +74,13 @@ impl Session {
     ///////////////////////////////////////////////////////////////////////////
     // Work submission
 
-    pub fn run_command_buffer(&self, command_buffer: &crate::CommandBuffer) {
-        let submission_index = self.queue.submit(Some(command_buffer.handle.clone()));
+    pub fn run_command_buffer(&self, command_buffer: crate::CommandBuffer) {
+        let submission_index = self.queue.submit(Some(command_buffer.handle));
 
-        self.device
-            .poll(wgpu::Maintain::WaitForSubmissionIndex(submission_index));
+        let _ = self.device.poll(wgpu::PollType::Wait {
+            submission_index: Some(submission_index),
+            timeout: None,
+        });
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -102,7 +101,7 @@ impl Session {
         &self,
         desc: &BufferDescriptor,
     ) -> Result<Buffer, LluviaGpuError> {
-        self.device.push_error_scope(wgpu::ErrorFilter::Validation);
+        let error_scope = self.device.push_error_scope(wgpu::ErrorFilter::Validation);
         let handle = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: desc.label.as_deref(),
             size: desc.size as u64,
@@ -110,7 +109,7 @@ impl Session {
             mapped_at_creation: false,
         });
 
-        if let Some(err) = self.device.pop_error_scope().await {
+        if let Some(err) = error_scope.pop().await {
             return Err(LluviaGpuError::BufferCreationError(err.to_string()));
         }
 
@@ -125,7 +124,9 @@ impl Session {
         let (sender, receiver) = flume::bounded(1);
         buffer_slice.map_async(wgpu::MapMode::Read, move |r| sender.send(r).unwrap());
 
-        self.device.poll(wgpu::Maintain::wait()).panic_on_timeout();
+        self.device
+            .poll(wgpu::PollType::wait_indefinitely())
+            .unwrap();
 
         if let Ok(Ok(())) = receiver.recv_async().await {
             let data = {
@@ -177,7 +178,7 @@ impl Session {
         let layout_desc = wgpu::PipelineLayoutDescriptor {
             label: Some("compute_pipeline_layout"),
             bind_group_layouts: &[&binding_group_layout],
-            push_constant_ranges: &[],
+            immediate_size: 0,
         };
 
         let pipeline_layout = self.device.create_pipeline_layout(&layout_desc);
