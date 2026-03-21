@@ -1,0 +1,53 @@
+# Goal Description
+
+Migrate the `lluvia` project's C++ core library to a new Rust crate `lluvia_gpu` using the `vulkano` crate for Vulkan abstractions. The migration focuses selectively on specific components matching the C++ core library structure, executing in a specific dependency-ordered sequence. The `Interpreter` classes are explicitly excluded.
+
+## Proposed Changes
+
+We will introduce several modules in `crates/lluvia_gpu/src/`. All new code will prioritize idiomatic Rust (strong error handling with `Result`/`?`, minimized allocations) and rely on `vulkano` abstractions.
+
+### `lluvia_gpu` core library
+
+#### [MODIFY] `crates/lluvia_gpu/src/lib.rs`
+- Expose the new modules: `pub mod session; pub mod memory; pub mod buffer; pub mod image; pub mod program; pub mod node;`
+
+#### [MODIFY] `crates/lluvia_gpu/src/session/mod.rs`
+- Refine existing `Session` implementation. Ensure it holds references to `vulkano::device::Device`, relevant `vulkano::device::Queue`s, and a `StandardMemoryAllocator`.
+- Map C++ `SessionDescriptor` and `DeviceDescriptor` patterns to guide instance/device creation. 
+- Ensure unit tests successfully create the session and request discrete GPUs accurately.
+
+#### [NEW] `crates/lluvia_gpu/src/memory/mod.rs`
+- Introduce memory abstractions. 
+- Map `lluvia` memory concepts (flags, properties) using `vulkano`'s `StandardMemoryAllocator` or relevant sub-allocator wrappers.
+
+#### [NEW] `crates/lluvia_gpu/src/buffer/mod.rs`
+- Implement `Buffer` wrapper around `vulkano::buffer::Buffer` (or `Subbuffer`).
+- Translate C++ usage flags and size parameters into Vulkano parameters.
+
+#### [NEW] `crates/lluvia_gpu/src/image/mod.rs`
+- Create `Image` struct wrapping `vulkano::image::Image`.
+- Include utilities for describing image type, format, dimensions, and layout.
+- Create `ImageView` struct wrapping `vulkano::image::view::ImageView`.
+
+#### [NEW] `crates/lluvia_gpu/src/program/mod.rs`
+- Convert `Program` logic to wrap `vulkano::shader::ShaderModule`.
+- Implement mechanisms to initialize the module from raw SPIR-V bytes, replacing C++ GLSL/SPIR-V loaders.
+
+#### [NEW] `crates/lluvia_gpu/src/node/mod.rs`
+- Implement `ComputeNodeDescriptor` to specify shader, pipeline layout, and specializations.
+- Implement `ComputeNode`, holding a `vulkano::pipeline::ComputePipeline`.
+- Map descriptor set bindings and dispatch logic for recording compute procedures into command buffers.
+
+## Verification Plan
+
+### Automated Tests
+As per the Rust best practices rule, each new Rust module will contain its own `#[cfg(test)] mod test { ... }` block to verify the structures.
+
+1. **Session Tests**: `cargo test -p lluvia_gpu test_session` checks successful Vulkan instance/device initialization.
+2. **Memory Tests**: Test allocation and properties.
+3. **Buffer Tests**: Test buffer creation of different types (host visible vs device local).
+4. **Image Tests**: Test image and image view creation.
+5. **Program Tests**: Test loading a dummy SPIR-V file into a `ShaderModule`.
+6. **Compute Node Tests**: Test pipeline creation with a shader, buffer bindings, and a simple compute dispatch check via `cargo test`. 
+
+Since Vulkano tests require a physical GPU or a software-based Vulkan implementation on the testing machine, these tests will serve as actual integration checks verifying the Vulkan API bindings.

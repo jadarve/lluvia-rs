@@ -1,0 +1,121 @@
+//! Buffer abstractions for Vulkan buffer management.
+//!
+//! This module mirrors the C++ `ll::Buffer` class, wrapping
+//! `vulkano::buffer::Buffer` / `Subbuffer`.
+
+use std::sync::Arc;
+
+use thiserror::Error;
+use vulkano::buffer::{Buffer as VkBuffer, BufferCreateInfo, BufferUsage, Subbuffer};
+use vulkano::memory::allocator::{AllocationCreateInfo, MemoryTypeFilter, StandardMemoryAllocator};
+
+#[derive(Error, Debug)]
+pub enum BufferError {
+    #[error("Buffer creation failed: {0}")]
+    CreationFailed(String),
+}
+
+/// Usage flags for buffers, mirroring C++ `ll::BufferUsageFlagBits`.
+///
+/// We re-export `vulkano::buffer::BufferUsage` directly since it provides the
+/// same bitflags (`STORAGE_BUFFER`, `TRANSFER_SRC`, `TRANSFER_DST`,
+/// `UNIFORM_BUFFER`).
+pub type LlBufferUsage = BufferUsage;
+
+/// A GPU buffer backed by `vulkano::buffer::Subbuffer<[u8]>`.
+pub struct Buffer {
+    inner: Subbuffer<[u8]>,
+    size: u64,
+    usage: BufferUsage,
+}
+
+impl Buffer {
+    /// Creates a new buffer using the given allocator.
+    ///
+    /// The default usage flags match the C++ default:
+    /// `StorageBuffer | TransferSrc | TransferDst`.
+    pub fn new(
+        allocator: Arc<StandardMemoryAllocator>,
+        size: u64,
+        usage: BufferUsage,
+        memory_type_filter: MemoryTypeFilter,
+    ) -> Result<Self, BufferError> {
+        let create_info = BufferCreateInfo {
+            usage,
+            ..Default::default()
+        };
+
+        let alloc_info = AllocationCreateInfo {
+            memory_type_filter,
+            ..Default::default()
+        };
+
+        let inner = VkBuffer::new_slice::<u8>(allocator, create_info, alloc_info, size)
+            .map_err(|e| BufferError::CreationFailed(e.to_string()))?;
+
+        Ok(Self { inner, size, usage })
+    }
+
+    /// Creates a device-local storage buffer (the most common case).
+    pub fn new_device_local(
+        allocator: Arc<StandardMemoryAllocator>,
+        size: u64,
+    ) -> Result<Self, BufferError> {
+        let usage =
+            BufferUsage::STORAGE_BUFFER | BufferUsage::TRANSFER_SRC | BufferUsage::TRANSFER_DST;
+        Self::new(allocator, size, usage, MemoryTypeFilter::PREFER_DEVICE)
+    }
+
+    /// Creates a host-visible storage buffer.
+    pub fn new_host_visible(
+        allocator: Arc<StandardMemoryAllocator>,
+        size: u64,
+    ) -> Result<Self, BufferError> {
+        let usage =
+            BufferUsage::STORAGE_BUFFER | BufferUsage::TRANSFER_SRC | BufferUsage::TRANSFER_DST;
+        Self::new(
+            allocator,
+            size,
+            usage,
+            MemoryTypeFilter::PREFER_HOST | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+        )
+    }
+
+    /// Returns the requested buffer size in bytes.
+    pub fn size(&self) -> u64 {
+        self.size
+    }
+
+    /// Returns the buffer usage flags.
+    pub fn usage(&self) -> BufferUsage {
+        self.usage
+    }
+
+    /// Returns a reference to the underlying `Subbuffer`.
+    pub fn inner(&self) -> &Subbuffer<[u8]> {
+        &self.inner
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::session::{Session, SessionDescriptor};
+    use anyhow::Result;
+
+    #[test]
+    fn test_buffer_device_local() -> Result<()> {
+        let session = Session::new(SessionDescriptor::new())?;
+        let buffer = Buffer::new_device_local(session.allocator(), 256)?;
+        assert_eq!(buffer.size(), 256);
+        Ok(())
+    }
+
+    #[test]
+    fn test_buffer_host_visible() -> Result<()> {
+        let session = Session::new(SessionDescriptor::new())?;
+        let buffer = Buffer::new_host_visible(session.allocator(), 128)?;
+        assert_eq!(buffer.size(), 128);
+        Ok(())
+    }
+}
