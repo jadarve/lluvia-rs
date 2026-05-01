@@ -16,6 +16,13 @@ mod tests {
         let host_buffer = session.create_buffer_host_visible(512)?;
         assert_eq!(host_buffer.size(), 512);
 
+        let data = vec![1u8; 512];
+        host_buffer.write(&data);
+        let read_data = host_buffer.read();
+        assert_eq!(data, read_data);
+
+        // TODO: explose API to tell buffer is host visible.
+
         // let usage_flags = buffer.usage();
         // assert_eq!(usage_flags, );
 

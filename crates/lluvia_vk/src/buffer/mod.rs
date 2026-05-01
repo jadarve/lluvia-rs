@@ -83,9 +83,18 @@ impl Buffer {
     //     self.usage
     // }
 
-    /// Returns a reference to the underlying `Subbuffer`.
-    pub fn inner(&self) -> &Subbuffer<[u8]> {
-        &self.inner
+    pub fn write(&self, data: &[u8]) {
+        if self.size < data.len() as u64 {
+            panic!("Buffer is too small to hold the data");
+        }
+
+        let mut write_guard = self.inner.write().expect("Failed to lock buffer for writing");
+        write_guard.copy_from_slice(data);
+    }
+
+    pub fn read(&self) -> Vec<u8> {
+        let read_guard = self.inner.read().expect("Failed to lock buffer for reading");
+        read_guard.as_ref().to_vec()
     }
 }
 
