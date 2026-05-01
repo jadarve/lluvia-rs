@@ -2,11 +2,11 @@ use std::sync::Arc;
 
 use thiserror::Error;
 use vulkano::VulkanLibrary;
-use vulkano::buffer::BufferUsage;
+// use vulkano::buffer::BufferUsage;
 use vulkano::device::physical::PhysicalDeviceType;
 use vulkano::device::{Device, DeviceCreateInfo, Queue, QueueCreateInfo, QueueFlags};
 use vulkano::instance::{Instance, InstanceCreateInfo};
-use vulkano::memory::allocator::{MemoryTypeFilter, StandardMemoryAllocator};
+use vulkano::memory::allocator::StandardMemoryAllocator;
 
 use crate::buffer::{Buffer, BufferError};
 
@@ -56,7 +56,7 @@ pub struct SessionDescriptor {
 }
 
 pub struct Session {
-    instance: Arc<Instance>,
+    // instance: Arc<Instance>,
     device: Arc<Device>,
     compute_queue: Arc<Queue>,
     allocator: Arc<StandardMemoryAllocator>,
@@ -126,37 +126,38 @@ impl Session {
         let allocator = Arc::new(StandardMemoryAllocator::new_default(device.clone()));
 
         Ok(Arc::new(Self {
-            instance,
+            // instance,
             device,
             compute_queue,
             allocator,
         }))
     }
 
-    pub fn instance(&self) -> Arc<Instance> {
-        self.instance.clone()
-    }
+    // pub(crate) fn instance(&self) -> Arc<Instance> {
+    //     self.instance.clone()
+    // }
 
-    pub fn device(&self) -> Arc<Device> {
-        self.device.clone()
-    }
+    // pub(crate) fn device(&self) -> Arc<Device> {
+    //     self.device.clone()
+    // }
 
-    pub fn compute_queue(&self) -> Arc<Queue> {
-        self.compute_queue.clone()
-    }
+    // pub(crate) fn compute_queue(&self) -> Arc<Queue> {
+    //     self.compute_queue.clone()
+    // }
 
-    pub fn allocator(&self) -> Arc<StandardMemoryAllocator> {
+    // TODO: do not expose this once image creation is encapsulated.
+    pub(crate) fn allocator(&self) -> Arc<StandardMemoryAllocator> {
         self.allocator.clone()
     }
 
-    pub fn create_buffer(
-        &self,
-        size: u64,
-        usage: BufferUsage,
-        memory_type_filter: MemoryTypeFilter,
-    ) -> Result<Buffer, BufferError> {
-        Buffer::new(self.allocator.clone(), size, usage, memory_type_filter)
-    }
+    // pub fn create_buffer(
+    //     &self,
+    //     size: u64,
+    //     usage: BufferUsage,
+    //     memory_type_filter: MemoryTypeFilter,
+    // ) -> Result<Buffer, BufferError> {
+    //     Buffer::new(self.allocator.clone(), size, usage, memory_type_filter)
+    // }
 
     pub fn create_buffer_device_local(&self, size: u64) -> Result<Buffer, BufferError> {
         Buffer::new_device_local(self.allocator.clone(), size)
@@ -175,9 +176,7 @@ mod test {
     #[test]
     fn test_session() -> Result<()> {
         let descriptor = SessionDescriptor::builder().build();
-        let session = Session::new(descriptor)?;
-        // Just verify we got a session.
-        let _device = session.device();
+        let _ = Session::new(descriptor)?;
         Ok(())
     }
 }

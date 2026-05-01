@@ -26,7 +26,7 @@ pub type LlBufferUsage = BufferUsage;
 pub struct Buffer {
     inner: Subbuffer<[u8]>,
     size: u64,
-    usage: BufferUsage,
+    // usage: BufferUsage,
 }
 
 impl Buffer {
@@ -53,7 +53,7 @@ impl Buffer {
         let inner = VkBuffer::new_slice::<u8>(allocator, create_info, alloc_info, size)
             .map_err(|e| BufferError::CreationFailed(e.to_string()))?;
 
-        Ok(Self { inner, size, usage })
+        Ok(Self { inner, size })
     }
 
     /// Creates a device-local storage buffer (the most common case).
@@ -78,10 +78,10 @@ impl Buffer {
         self.size
     }
 
-    /// Returns the buffer usage flags.
-    pub fn usage(&self) -> BufferUsage {
-        self.usage
-    }
+    // /// Returns the buffer usage flags.
+    // pub fn usage(&self) -> BufferUsage {
+    //     self.usage
+    // }
 
     /// Returns a reference to the underlying `Subbuffer`.
     pub fn inner(&self) -> &Subbuffer<[u8]> {
