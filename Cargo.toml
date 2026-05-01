@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/lluvia_gpu", "crates/lluvia_media", "crates/lluvia_webgpu"]
+members = ["crates/lluvia_vk", "crates/lluvia_media", "crates/lluvia_webgpu"]
 
 
 ###########################################################

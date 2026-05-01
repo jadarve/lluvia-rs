@@ -1,5 +1,5 @@
 [package]
-name = "lluvia_gpu"
+name = "lluvia_vk"
 version = "0.1.0"
 edition = "2024"
 
@@ -7,6 +7,7 @@ edition = "2024"
 vulkano = { workspace = true }
 thiserror = { workspace = true }
 bytemuck = { workspace = true }
+bon = { workspace = true }
 
 
 [dev-dependencies]

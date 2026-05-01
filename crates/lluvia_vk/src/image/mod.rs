@@ -147,10 +147,7 @@ impl Default for ImageDescriptor {
             depth: 1,
             channel_type: ChannelType::Uint8,
             channel_count: ChannelCount::C1,
-            usage: ImageUsage::STORAGE
-                | ImageUsage::SAMPLED
-                | ImageUsage::TRANSFER_SRC
-                | ImageUsage::TRANSFER_DST,
+            usage: ImageUsage::STORAGE | ImageUsage::SAMPLED | ImageUsage::TRANSFER_SRC | ImageUsage::TRANSFER_DST,
         }
     }
 }
@@ -239,10 +236,7 @@ pub struct Image {
 
 impl Image {
     /// Creates a new device-local image from the given descriptor.
-    pub fn new(
-        allocator: Arc<StandardMemoryAllocator>,
-        descriptor: ImageDescriptor,
-    ) -> Result<Self, ImageError> {
+    pub fn new(allocator: Arc<StandardMemoryAllocator>, descriptor: ImageDescriptor) -> Result<Self, ImageError> {
         descriptor.validate()?;
 
         let image_type = descriptor.image_type();
@@ -266,8 +260,8 @@ impl Image {
             ..Default::default()
         };
 
-        let inner = VkImage::new(allocator, create_info, alloc_info)
-            .map_err(|e| ImageError::CreationFailed(e.to_string()))?;
+        let inner =
+            VkImage::new(allocator, create_info, alloc_info).map_err(|e| ImageError::CreationFailed(e.to_string()))?;
 
         Ok(Self { inner, descriptor })
     }
@@ -283,10 +277,7 @@ impl Image {
     }
 
     /// Creates an [`ImageView`] from this image using the given view descriptor.
-    pub fn create_image_view(
-        self: &Arc<Self>,
-        view_descriptor: &ImageViewDescriptor,
-    ) -> Result<ImageView, ImageError> {
+    pub fn create_image_view(self: &Arc<Self>, view_descriptor: &ImageViewDescriptor) -> Result<ImageView, ImageError> {
         ImageView::new(self.clone(), view_descriptor)
     }
 }
@@ -397,10 +388,7 @@ pub struct ImageView {
 
 impl ImageView {
     /// Creates a new `ImageView` from an [`Image`] and descriptor.
-    pub fn new(
-        image: Arc<Image>,
-        view_descriptor: &ImageViewDescriptor,
-    ) -> Result<Self, ImageError> {
+    pub fn new(image: Arc<Image>, view_descriptor: &ImageViewDescriptor) -> Result<Self, ImageError> {
         let view_info = ImageViewCreateInfo::from_image(image.inner());
 
         let view = VkImageView::new(image.inner().clone(), view_info)
@@ -419,10 +407,7 @@ impl ImageView {
                 unnormalized_coordinates: !view_descriptor.normalized_coordinates,
                 ..Default::default()
             };
-            Some(
-                Sampler::new(device, sampler_info)
-                    .map_err(|e| ImageError::ViewCreationFailed(e.to_string()))?,
-            )
+            Some(Sampler::new(device, sampler_info).map_err(|e| ImageError::ViewCreationFailed(e.to_string()))?)
         } else {
             None
         };
@@ -464,7 +449,7 @@ mod test {
 
     #[test]
     fn test_image_creation() -> Result<()> {
-        let session = Session::new(SessionDescriptor::new())?;
+        let session = Session::new(SessionDescriptor::builder().build())?;
         let desc = ImageDescriptor::default()
             .width(64)
             .height(64)
@@ -479,7 +464,7 @@ mod test {
 
     #[test]
     fn test_image_view_creation() -> Result<()> {
-        let session = Session::new(SessionDescriptor::new())?;
+        let session = Session::new(SessionDescriptor::builder().build())?;
         let desc = ImageDescriptor::default()
             .width(32)
             .height(32)

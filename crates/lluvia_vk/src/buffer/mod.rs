@@ -34,7 +34,7 @@ impl Buffer {
     ///
     /// The default usage flags match the C++ default:
     /// `StorageBuffer | TransferSrc | TransferDst`.
-    pub fn new(
+    pub(crate) fn new(
         allocator: Arc<StandardMemoryAllocator>,
         size: u64,
         usage: BufferUsage,
@@ -57,22 +57,14 @@ impl Buffer {
     }
 
     /// Creates a device-local storage buffer (the most common case).
-    pub fn new_device_local(
-        allocator: Arc<StandardMemoryAllocator>,
-        size: u64,
-    ) -> Result<Self, BufferError> {
-        let usage =
-            BufferUsage::STORAGE_BUFFER | BufferUsage::TRANSFER_SRC | BufferUsage::TRANSFER_DST;
+    pub(crate) fn new_device_local(allocator: Arc<StandardMemoryAllocator>, size: u64) -> Result<Self, BufferError> {
+        let usage = BufferUsage::STORAGE_BUFFER | BufferUsage::TRANSFER_SRC | BufferUsage::TRANSFER_DST;
         Self::new(allocator, size, usage, MemoryTypeFilter::PREFER_DEVICE)
     }
 
     /// Creates a host-visible storage buffer.
-    pub fn new_host_visible(
-        allocator: Arc<StandardMemoryAllocator>,
-        size: u64,
-    ) -> Result<Self, BufferError> {
-        let usage =
-            BufferUsage::STORAGE_BUFFER | BufferUsage::TRANSFER_SRC | BufferUsage::TRANSFER_DST;
+    pub(crate) fn new_host_visible(allocator: Arc<StandardMemoryAllocator>, size: u64) -> Result<Self, BufferError> {
+        let usage = BufferUsage::STORAGE_BUFFER | BufferUsage::TRANSFER_SRC | BufferUsage::TRANSFER_DST;
         Self::new(
             allocator,
             size,
@@ -99,22 +91,21 @@ impl Buffer {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use crate::session::{Session, SessionDescriptor};
     use anyhow::Result;
 
     #[test]
     fn test_buffer_device_local() -> Result<()> {
-        let session = Session::new(SessionDescriptor::new())?;
-        let buffer = Buffer::new_device_local(session.allocator(), 256)?;
+        let session = Session::new(SessionDescriptor::builder().build())?;
+        let buffer = session.create_buffer_device_local(256)?;
         assert_eq!(buffer.size(), 256);
         Ok(())
     }
 
     #[test]
     fn test_buffer_host_visible() -> Result<()> {
-        let session = Session::new(SessionDescriptor::new())?;
-        let buffer = Buffer::new_host_visible(session.allocator(), 128)?;
+        let session = Session::new(SessionDescriptor::builder().build())?;
+        let buffer = session.create_buffer_host_visible(128)?;
         assert_eq!(buffer.size(), 128);
         Ok(())
     }
