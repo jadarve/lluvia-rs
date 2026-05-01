@@ -5,5 +5,25 @@
         "editor.defaultFormatter": "rust-lang.rust-analyzer",
         "editor.inlayHints.enabled": "on",
         "rust-analyzer.check.command": "clippy",
-    }
+    },
+    "luau-lsp.sourcemap.enabled": false,
+    "luau-lsp.sourcemap.autogenerate": false,
+    "luau-lsp.studioPlugin.enabled": true,
+    "luau-lsp.server.baseLuaurc": "crates/lluvia_assets/resources/luau/.luaurc",
+    "luau-lsp.types.robloxSecurityLevel": "None",
+    "luau-lsp.platform.type": "standard",
+    "luau-lsp.types.disabledGlobals": [
+        "roblox"
+    ],
+    "luau-lsp.types.definitionFiles": {
+        "native": "crates/lluvia_assets/resources/luau/definitions/native.d.luau"
+    },
+    "[luau]": {
+        "editor.defaultFormatter": "JohnnyMorganz.stylua",
+        "editor.formatOnSave": true
+    },
+    "[lua]": {
+        "editor.defaultFormatter": "JohnnyMorganz.stylua",
+        "editor.formatOnSave": true
+    },
 }

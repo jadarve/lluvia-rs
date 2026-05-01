@@ -94,7 +94,7 @@ impl Buffer {
 
     pub fn read(&self) -> Vec<u8> {
         let read_guard = self.inner.read().expect("Failed to lock buffer for reading");
-        read_guard.as_ref().to_vec()
+        read_guard.to_vec()
     }
 }
 

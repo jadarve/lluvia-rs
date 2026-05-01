@@ -8,6 +8,7 @@ vulkano = { workspace = true }
 thiserror = { workspace = true }
 bytemuck = { workspace = true }
 bon = { workspace = true }
+mlua = { workspace = true }
 
 
 [dev-dependencies]

@@ -20,6 +20,7 @@ thiserror = { version = "2.0.18" }
 tokio-macros = { version = "~2.7.0" }
 wgpu = { version = "29.0.1" }
 vulkano = { version = "0.35.2" }
+mlua = { version = "0.11.6", features = ["luau"] }
 
 wasm-bindgen = "0.2.120"
 wasm-bindgen-futures = "0.4.70"
