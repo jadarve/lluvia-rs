@@ -6,7 +6,6 @@ members = ["crates/lluvia_vk", "crates/lluvia_media", "crates/lluvia_webgpu"]
 ###########################################################
 # Dependencies
 [workspace.dependencies]
-tokio = { version = "1.52.1" }
 anyhow = { version = "1.0.102" }
 bitflags = { version = "2.11.1" }
 bon = { version = "3.9.1" }
@@ -14,13 +13,15 @@ bytemuck = { version = "1.25.0" }
 bytes = { version = "1.11.1" }
 clap = { version = "4.6.1" }
 flume = { version = "0.12.0" }
+mlua = { version = "0.11.6", features = ["luau"] }
 pollster = { version = "0.4.0" }
 rstest = { version = "0.26.1" }
 thiserror = { version = "2.0.18" }
+tokio = { version = "1.52.1" }
 tokio-macros = { version = "~2.7.0" }
-wgpu = { version = "29.0.1" }
 vulkano = { version = "0.35.2" }
-mlua = { version = "0.11.6", features = ["luau"] }
+vulkano-shaders = { version = "0.35.0" }
+wgpu = { version = "29.0.1" }
 
 wasm-bindgen = "0.2.120"
 wasm-bindgen-futures = "0.4.70"

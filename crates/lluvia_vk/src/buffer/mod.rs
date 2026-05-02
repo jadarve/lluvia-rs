@@ -96,6 +96,11 @@ impl Buffer {
         let read_guard = self.inner.read().expect("Failed to lock buffer for reading");
         read_guard.to_vec()
     }
+
+    /// Returns the underlying `Subbuffer`.
+    pub(crate) fn inner(&self) -> &Subbuffer<[u8]> {
+        &self.inner
+    }
 }
 
 #[cfg(test)]

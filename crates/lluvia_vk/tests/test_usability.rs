@@ -3,6 +3,38 @@ mod tests {
     use anyhow::Result;
     use lluvia_vk as ll;
 
+    #[cfg(test)]
+    mod vs {
+        vulkano_shaders::shader!(
+            ty: "compute",
+            src: r"
+            #version 450
+
+            #ifndef ASSIGN_COMP_
+            #define ASSIGN_COMP_
+
+
+            layout (
+                local_size_x_id = 1, local_size_x = 1,
+                local_size_y_id = 2, local_size_y = 1,
+                local_size_z_id = 3, local_size_z = 1
+            ) in;
+
+            layout(binding = 0) buffer out0 {
+                float outputBuffer[];
+            };
+
+            void main() {
+
+                const uint index = gl_GlobalInvocationID.x;
+                outputBuffer[index] = index;
+            }
+
+            #endif // ASSIGN_COMP_
+        ",
+        );
+    }
+
     #[test]
     fn test_create_session() -> Result<()> {
         // TODO: builder to create the descriptor
@@ -28,6 +60,56 @@ mod tests {
 
         // let session = Session::new().unwrap();
         // assert!(session.is_valid());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_compute_node() -> Result<()> {
+        let session_descriptor = ll::SessionDescriptor::default();
+
+        let session = ll::Session::new(session_descriptor)?;
+
+        let device_buffer = session.create_buffer_device_local(512)?;
+        let staging_buffer = session.create_buffer_host_visible(512)?;
+
+        let sh = vs::load(session.device())?;
+        let program = std::sync::Arc::new(session.create_program_from_shader_module(sh)?);
+
+        let descriptor = ll::node::ComputeNodeDescriptor::default()
+            .program(program)
+            .function_name("main")
+            .local_shape([1, 1, 1])
+            .grid_shape([1, 1, 1])
+            .add_port(ll::node::PortDescriptor {
+                binding: 0,
+                name: "out0".to_string(),
+                direction: ll::node::PortDirection::Out,
+                port_type: ll::node::PortType::Buffer,
+            });
+
+        let mut node = session.create_compute_node(descriptor)?;
+
+        use ll::node::Node;
+        node.bind("out0", ll::node::NodePort::Buffer(device_buffer.clone()))?;
+
+        let mut builder = session.create_command_buffer_builder()?;
+
+        builder.record_compute_node(&node)?;
+
+        // Copy from device buffer to staging buffer to verify results
+        builder.copy_buffer(device_buffer.clone(), staging_buffer.clone())?;
+
+        let command_buffer = builder.build_command_buffer()?;
+        
+        session.run(command_buffer)?;
+
+        // Verify that the buffer was written to
+        // The shader writes `outputBuffer[index] = index`
+        let data = staging_buffer.read();
+        let floats: &[f32] = bytemuck::cast_slice(&data);
+        assert_eq!(floats[0], 0.0);
+        // assert_eq!(floats[1], 1.0); // Wait, grid is 1x1x1, so only 1 invocation?
 
         Ok(())
     }
