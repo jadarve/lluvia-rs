@@ -6,13 +6,14 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use foldhash::HashMapExt;
 use thiserror::Error;
 use vulkano::device::Device;
+use vulkano::pipeline::Pipeline;
 use vulkano::pipeline::compute::ComputePipelineCreateInfo;
 use vulkano::pipeline::layout::PipelineDescriptorSetLayoutCreateInfo;
 use vulkano::pipeline::{PipelineLayout, PipelineShaderStageCreateInfo, compute::ComputePipeline};
-use vulkano::pipeline::Pipeline;
-use vulkano::shader::ShaderModule;
+use vulkano::shader::SpecializedShaderModule;
 
 use crate::buffer::Buffer;
 use crate::image::ImageView;
@@ -111,12 +112,7 @@ pub trait Node {
     fn bind(&mut self, name: &str, obj: NodePort) -> Result<(), ComputeNodeError>;
     fn has_port(&self, name: &str) -> bool;
     fn port(&self, name: &str) -> Option<&NodePort>;
-    fn set_parameter(&mut self, name: &str, value: f64);
-    fn parameter(&self, name: &str) -> Option<f64>;
-    fn record(
-        &self,
-        builder: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>,
-    ) -> Result<(), ComputeNodeError>;
+    fn record(&self, builder: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>) -> Result<(), ComputeNodeError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -133,8 +129,8 @@ pub struct ComputeNodeDescriptor {
     local_shape: [u32; 3],
     grid_shape: [u32; 3],
     ports: Vec<PortDescriptor>,
-    parameters: HashMap<String, f64>,
-    push_constants: PushConstants,
+    // parameters: HashMap<String, f64>,
+    // push_constants: PushConstants,
 }
 
 impl Default for ComputeNodeDescriptor {
@@ -145,8 +141,8 @@ impl Default for ComputeNodeDescriptor {
             local_shape: [1, 1, 1],
             grid_shape: [1, 1, 1],
             ports: Vec::new(),
-            parameters: HashMap::new(),
-            push_constants: PushConstants::default(),
+            // parameters: HashMap::new(),
+            // push_constants: PushConstants::default(),
         }
     }
 }
@@ -194,18 +190,6 @@ impl ComputeNodeDescriptor {
         self
     }
 
-    /// Sets a named parameter.
-    pub fn set_parameter(mut self, name: impl Into<String>, value: f64) -> Self {
-        self.parameters.insert(name.into(), value);
-        self
-    }
-
-    /// Sets the push constants.
-    pub fn push_constants(mut self, pc: PushConstants) -> Self {
-        self.push_constants = pc;
-        self
-    }
-
     /// Returns the program, if set.
     pub fn get_program(&self) -> Option<&Arc<Program>> {
         self.program.as_ref()
@@ -224,11 +208,6 @@ impl ComputeNodeDescriptor {
     /// Returns the dispatch grid shape.
     pub fn get_grid_shape(&self) -> [u32; 3] {
         self.grid_shape
-    }
-
-    /// Returns the push constants.
-    pub fn get_push_constants(&self) -> &PushConstants {
-        &self.push_constants
     }
 
     fn validate(&self) -> Result<(), ComputeNodeError> {
@@ -272,20 +251,30 @@ impl ComputeNode {
     ) -> Result<Self, ComputeNodeError> {
         descriptor.validate()?;
 
-        let program = descriptor
-            .program
-            .as_ref()
-            .ok_or(ComputeNodeError::InvalidProgram)?;
-        let shader_module: &Arc<ShaderModule> = program.shader_module();
+        let program = descriptor.program.as_ref().ok_or(ComputeNodeError::InvalidProgram)?;
 
-        let entry_point = shader_module
-            .entry_point(&descriptor.function_name)
-            .ok_or_else(|| {
-                ComputeNodeError::CreationFailed(format!(
-                    "Entry point '{}' not found in shader module",
-                    descriptor.function_name
-                ))
-            })?;
+        ///////////////////////////////////////////////////////////////////////
+        // Specialization constants to set local grid shape
+        let mut specialization_constants = foldhash::HashMap::<u32, vulkano::shader::SpecializationConstant>::new();
+
+        // TODO: should use some linear algebra to represent this.
+        let local_shape = &descriptor.local_shape;
+
+        specialization_constants.insert(1, (local_shape[0]).into());
+        specialization_constants.insert(2, (local_shape[1]).into());
+        specialization_constants.insert(3, (local_shape[2]).into());
+
+        let shader_module: Arc<SpecializedShaderModule> = program
+            .shader_module()
+            .specialize(specialization_constants)
+            .map_err(|e| ComputeNodeError::CreationFailed(e.to_string()))?;
+
+        let entry_point = shader_module.entry_point(&descriptor.function_name).ok_or_else(|| {
+            ComputeNodeError::CreationFailed(format!(
+                "Entry point '{}' not found in shader module",
+                descriptor.function_name
+            ))
+        })?;
 
         let stage = PipelineShaderStageCreateInfo::new(entry_point);
         let layout = PipelineLayout::new(
@@ -354,9 +343,7 @@ impl ComputeNode {
             if let Some(obj) = self.objects.get(&port.name) {
                 let write = match obj {
                     NodePort::Buffer(b) => WriteDescriptorSet::buffer(port.binding, b.inner().clone()),
-                    NodePort::ImageView(img) => {
-                        WriteDescriptorSet::image_view(port.binding, img.view().clone())
-                    }
+                    NodePort::ImageView(img) => WriteDescriptorSet::image_view(port.binding, img.view().clone()),
                 };
                 writes.push(write);
             }
@@ -367,13 +354,8 @@ impl ComputeNode {
             return Ok(());
         }
 
-        let set = DescriptorSet::new(
-            self.descriptor_set_allocator.clone(),
-            layout.clone(),
-            writes,
-            [],
-        )
-        .map_err(|e| ComputeNodeError::CreationFailed(e.to_string()))?;
+        let set = DescriptorSet::new(self.descriptor_set_allocator.clone(), layout.clone(), writes, [])
+            .map_err(|e| ComputeNodeError::CreationFailed(e.to_string()))?;
 
         self.descriptor_set = Some(set);
         Ok(())
@@ -405,22 +387,9 @@ impl Node for ComputeNode {
         self.objects.get(name)
     }
 
-    fn set_parameter(&mut self, name: &str, value: f64) {
-        self.descriptor.parameters.insert(name.to_string(), value);
-    }
-
-    fn parameter(&self, name: &str) -> Option<f64> {
-        self.descriptor.parameters.get(name).copied()
-    }
-
-    fn record(
-        &self,
-        builder: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>,
-    ) -> Result<(), ComputeNodeError> {
+    fn record(&self, builder: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>) -> Result<(), ComputeNodeError> {
         if self.descriptor.grid_shape.contains(&0) {
-            return Err(ComputeNodeError::DispatchFailed(
-                "Grid shape contains zero".to_string(),
-            ));
+            return Err(ComputeNodeError::DispatchFailed("Grid shape contains zero".to_string()));
         }
 
         builder
@@ -436,15 +405,6 @@ impl Node for ComputeNode {
                     vec![set.clone()],
                 )
                 .map_err(|e| ComputeNodeError::DispatchFailed(e.to_string()))?;
-        }
-
-        let pc_data = self.descriptor.push_constants.data();
-        if !pc_data.is_empty() {
-            // Push constants are not properly supported for dynamic slices in vulkano AutoCommandBufferBuilder
-            // For now, we will fail if push constants are provided.
-            return Err(ComputeNodeError::DispatchFailed(
-                "Dynamic push constants are not supported via Vec<u8>".to_string(),
-            ));
         }
 
         unsafe {

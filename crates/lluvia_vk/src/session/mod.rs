@@ -13,6 +13,7 @@ use crate::buffer::{Buffer, BufferError};
 use crate::command_buffer::{CommandBuffer, CommandBufferBuilder, CommandBufferError};
 use crate::node::{ComputeNode, ComputeNodeDescriptor, ComputeNodeError};
 use crate::program::{Program, ProgramError};
+
 #[derive(Error, Debug)]
 pub enum SessionError {
     #[error("Failed to create Vulkan instance")]

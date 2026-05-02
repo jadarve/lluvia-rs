@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 bon = { workspace = true }
 bytemuck = { workspace = true }
+foldhash = { workspace = true }
 mlua = { workspace = true }
 thiserror = { workspace = true }
 vulkano = { workspace = true }

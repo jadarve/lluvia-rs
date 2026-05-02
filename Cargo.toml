@@ -13,6 +13,7 @@ bytemuck = { version = "1.25.0" }
 bytes = { version = "1.11.1" }
 clap = { version = "4.6.1" }
 flume = { version = "0.12.0" }
+foldhash = { version = "0.1.5" }
 mlua = { version = "0.11.6", features = ["luau"] }
 pollster = { version = "0.4.0" }
 rstest = { version = "0.26.1" }

@@ -14,6 +14,7 @@ mod tests {
             #define ASSIGN_COMP_
 
 
+            // Specialization constants to set the local workgroup size.
             layout (
                 local_size_x_id = 1, local_size_x = 1,
                 local_size_y_id = 2, local_size_y = 1,
@@ -79,8 +80,8 @@ mod tests {
         let descriptor = ll::node::ComputeNodeDescriptor::default()
             .program(program)
             .function_name("main")
-            .local_shape([1, 1, 1])
-            .grid_shape([1, 1, 1])
+            .local_shape([32, 1, 1])
+            .grid_shape([4, 1, 1])
             .add_port(ll::node::PortDescriptor {
                 binding: 0,
                 name: "out0".to_string(),
@@ -101,15 +102,18 @@ mod tests {
         builder.copy_buffer(device_buffer.clone(), staging_buffer.clone())?;
 
         let command_buffer = builder.build_command_buffer()?;
-        
+
         session.run(command_buffer)?;
 
         // Verify that the buffer was written to
         // The shader writes `outputBuffer[index] = index`
         let data = staging_buffer.read();
         let floats: &[f32] = bytemuck::cast_slice(&data);
-        assert_eq!(floats[0], 0.0);
-        // assert_eq!(floats[1], 1.0); // Wait, grid is 1x1x1, so only 1 invocation?
+        println!("{floats:?}");
+
+        for i in 0..floats.len() {
+            assert_eq!(floats[i], i as f32);
+        }
 
         Ok(())
     }
