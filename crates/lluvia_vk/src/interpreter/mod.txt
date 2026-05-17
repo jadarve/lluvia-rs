@@ -1,0 +1,221 @@
+mod types;
+mod wrappers;
+
+pub use types::*;
+
+use crate::domain::pipeline;
+use thiserror::Error;
+
+///////////////////////////////////////////////////////////////////////////////
+#[derive(Debug, Error)]
+pub enum InterpreterError {
+    #[error("Failed to load file: {path}")]
+    LoadFile { path: String },
+
+    #[error("Runtime error: {msg}")]
+    RuntimeError { msg: String },
+}
+
+///////////////////////////////////////////////////////////////////////////////
+/// Contains all the Luau scripts stored in the resources/luau folder
+static LUAU_DIR: include_dir::Dir = include_dir::include_dir!("$CARGO_MANIFEST_DIR/resources/luau/");
+
+/// Loads an internal file, stored in the resources/luau folder bundled with the binary
+fn load_internal_file(mlua: &mlua::Lua, path: &str) -> Result<(), InterpreterError> {
+    log::info!("Loading file: {path}");
+
+    let file = LUAU_DIR
+        .get_file(path)
+        .ok_or(InterpreterError::LoadFile { path: path.to_string() })?;
+
+    let file_content = file
+        .contents_utf8()
+        .ok_or(InterpreterError::LoadFile { path: path.to_string() })?;
+
+    mlua.load(file_content)
+        .set_name(path)
+        .exec()
+        .map_err(|err| InterpreterError::RuntimeError {
+            msg: format!("{err:?}"),
+        })
+}
+
+fn load_internal_module(mlua: &mlua::Lua, path: &str) -> Result<(), InterpreterError> {
+    let file = LUAU_DIR
+        .get_file(path)
+        .ok_or(InterpreterError::LoadFile { path: path.to_string() })?;
+
+    let file_content = file
+        .contents_utf8()
+        .ok_or(InterpreterError::LoadFile { path: path.to_string() })?;
+
+    let module_name = format!("@{path}");
+
+    let chunk = mlua
+        .load(file_content)
+        .set_name(&module_name)
+        .eval::<mlua::Value>()
+        .map_err(|err| InterpreterError::RuntimeError {
+            msg: format!("{err:?}"),
+        })?;
+
+    match chunk {
+        mlua::Value::Table(table) => {
+            mlua.register_module(&module_name, table)
+                .map_err(|err| InterpreterError::RuntimeError {
+                    msg: format!("Error registering module {module_name}: {err:?}"),
+                })
+        }
+        // This case might happen for modules that only export types.
+        mlua::Nil => {
+            log::info!("Module {module_name} is nil");
+            Ok(())
+        }
+        _ => Err(InterpreterError::RuntimeError {
+            msg: "Module is not a table".to_string(),
+        }),
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+#[derive(Debug)]
+pub struct Interpreter {
+    mlua: mlua::Lua,
+}
+
+impl Interpreter {
+    pub fn new() -> Result<Self, InterpreterError> {
+        let lua = mlua::Lua::new();
+
+        ///////////////////////////////////////////////////
+        // load the base library
+        // FIXME: I need to load each module individually and in order. See lua.create_require_function(require)
+        load_internal_module(&lua, "lib/gs/constants.luau")?;
+        load_internal_module(&lua, "lib/gs/template_arguments.luau")?;
+        load_internal_module(&lua, "lib/gs/bin_builder.luau")?;
+        load_internal_module(&lua, "lib/gs/pipeline_builder.luau")?;
+        load_internal_module(&lua, "lib/gs.luau")?;
+
+        let globals = lua.globals();
+
+        ///////////////////////////////////////////////////
+        // Register the native types
+        // FIXME: ugly block
+        globals
+            .set("BinDescriptor", pipeline::BinDescriptor::default())
+            .map_err(|e| InterpreterError::RuntimeError { msg: e.to_string() })?;
+
+        globals
+            .set(
+                "GhostPadBindingDescriptor",
+                pipeline::GhostPadBindingDescriptor::default(),
+            )
+            .map_err(|e| InterpreterError::RuntimeError { msg: e.to_string() })?;
+
+        globals
+            .set("LinkDescriptor", pipeline::LinkDescriptor::default())
+            .map_err(|e| InterpreterError::RuntimeError { msg: e.to_string() })?;
+
+        globals
+            .set("ElementDescriptor", pipeline::ElementDescriptor::default())
+            .map_err(|e| InterpreterError::RuntimeError { msg: e.to_string() })?;
+
+        globals
+            .set("PipelineDescriptor", pipeline::PipelineDescriptor::default())
+            .map_err(|e| InterpreterError::RuntimeError { msg: e.to_string() })?;
+
+        globals
+            .set("NativeTemplateArguments", NativeTemplateArguments::default())
+            .map_err(|e| InterpreterError::RuntimeError { msg: e.to_string() })?;
+        ///////////////////////////////////////////////////
+
+        ///////////////////////////////////////////////////
+        // load the pipeline builders
+        let builders_iterator = LUAU_DIR
+            .find("builders/**/*.luau")
+            .map_err(|e| InterpreterError::LoadFile {
+                path: format!("builders/**/*.luau: {e}"),
+            })?;
+
+        for file in builders_iterator {
+            load_internal_file(&lua, &file.path().display().to_string())?;
+        }
+
+        Ok(Self { mlua: lua })
+    }
+
+    pub fn get_pipeline_descriptor(
+        &self,
+        template_arguments: &NativeTemplateArguments,
+    ) -> Result<pipeline::PipelineDescriptor, InterpreterError> {
+        log::info!("Template arguments:\n{template_arguments:?}");
+
+        let template = template_arguments.template.clone();
+
+        // first assign the template_arguments as a global variable
+        self.mlua
+            .globals()
+            .set("NATIVE_TEMPLATE_ARGUMENTS", template_arguments.to_owned())
+            .map_err(|e| InterpreterError::RuntimeError { msg: e.to_string() })?;
+
+        // build the pipeline
+        let code = format!(
+            r#"
+           local gs = require("@lib/gs.luau")
+
+           -- load the pipeline builder we want to use
+           local pipeline_builder = gs:get_pipeline_builder("{template}")
+
+           -- Use the arguments builder from the builder to convert the native args to a Luau table
+           local arguments_builder = pipeline_builder:get_arguments_builder()
+          
+           local template_arguments = arguments_builder:from_native(NATIVE_TEMPLATE_ARGUMENTS)
+
+           return pipeline_builder:build_descriptor(template_arguments)
+           "#,
+        );
+
+        let chunk = self.mlua.load(&code).set_name(template).set_mode(mlua::ChunkMode::Text);
+
+        // TODO: A template may return multiple descriptors, so we need to return a vector of descriptors
+        match chunk.eval::<mlua::UserDataRef<pipeline::PipelineDescriptor>>() {
+            Ok(desc) => Ok(desc.clone()),
+            Err(e) => {
+                let code_for_debugging = code
+                    .split('\n')
+                    .enumerate()
+                    .map(|(i, line)| format!("{:>3}: {line}", i + 1))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+
+                let error_message = format!("Error running script: {e}:\n{code_for_debugging}");
+
+                log::error!("{error_message}");
+                Err(InterpreterError::RuntimeError { msg: error_message })
+            }
+        }
+    }
+
+    pub fn eval<T: mlua::FromLua>(&self, code: &str, chunk_name: &str) -> Result<T, InterpreterError> {
+        let chunk = self
+            .mlua
+            .load(code)
+            .set_name(chunk_name)
+            .set_mode(mlua::ChunkMode::Text);
+
+        match chunk.eval::<T>() {
+            Ok(result) => Ok(result),
+            Err(e) => {
+                let code_for_debugging = code
+                    .split('\n')
+                    .enumerate()
+                    .map(|(i, line)| format!("{:>3}: {line}", i + 1))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+
+                let error_message = format!("Error running script: {e}:\n{code_for_debugging}");
+                Err(InterpreterError::RuntimeError { msg: error_message })
+            }
+        }
+    }
+}

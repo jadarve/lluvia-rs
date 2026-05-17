@@ -12,6 +12,3 @@ impl mlua::UserData for SessionDescriptor {
         });
     }
 }
-
-///////////////////////////////////////////////////////////////////////////////
-// impl mlua::UserData for BufferDe

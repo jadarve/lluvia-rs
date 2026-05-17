@@ -125,7 +125,9 @@ pub trait Node {
 #[derive(Clone)]
 pub struct ComputeNodeDescriptor {
     program: Option<Arc<Program>>,
-    function_name: String,
+    pub function_name: String,
+
+    // FIXME: should use some linear algebra to represent this.
     local_shape: [u32; 3],
     grid_shape: [u32; 3],
     ports: Vec<PortDescriptor>,

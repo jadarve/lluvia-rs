@@ -16,3 +16,8 @@
 ## 2026-05-16
 
 * Python wrappers, see pyo3-example repo.
+  * See https://github.com/PyO3/pyo3/pull/6020 for native enum support.
+  * Got a basic version.
+    * Missing docstrings.
+    * Missing tests.
+* Luau support

@@ -7,6 +7,7 @@ edition = "2024"
 bon = { workspace = true }
 bytemuck = { workspace = true }
 foldhash = { workspace = true }
+include_dir = { workspace = true }
 mlua = { workspace = true }
 thiserror = { workspace = true }
 vulkano = { workspace = true }

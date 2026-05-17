@@ -6,5 +6,6 @@
         "vadimcn.vscode-lldb",
         "JohnnyMorganz.stylua",
         "JohnnyMorganz.luau-lsp",
+        "antaalt.shader-validator",
     ]
 }

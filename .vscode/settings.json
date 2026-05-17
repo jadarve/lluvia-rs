@@ -16,7 +16,7 @@
         "roblox"
     ],
     "luau-lsp.types.definitionFiles": {
-        "native": "crates/lluvia_assets/resources/luau/definitions/native.d.luau"
+        "native": "crates/lluvia_vk/resources/luau/definitions/native.d.luau"
     },
     "[luau]": {
         "editor.defaultFormatter": "JohnnyMorganz.stylua",
