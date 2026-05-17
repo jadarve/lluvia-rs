@@ -26,4 +26,5 @@
         "editor.defaultFormatter": "JohnnyMorganz.stylua",
         "editor.formatOnSave": true
     },
+    "python.defaultInterpreterPath": "~/.pyenv/versions/lluvia-rs/bin/python3",
 }

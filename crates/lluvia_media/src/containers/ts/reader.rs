@@ -1,4 +1,3 @@
-use std::usize;
 
 use anyhow::Result;
 
@@ -15,7 +14,7 @@ impl TsMemoryReader {
             bytes::Bytes::from_owner(bytes_vec)
         };
 
-        Ok(Self { buffer: buffer })
+        Ok(Self { buffer })
     }
 
     pub fn at(&self, i: usize) -> Result<PacketView> {
@@ -29,6 +28,10 @@ impl TsMemoryReader {
     pub fn len(&self) -> usize {
         self.buffer.len() / PACKET_SIZE
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 #[cfg(test)]
@@ -39,7 +42,7 @@ mod tests {
     #[test]
     fn test_read_file() -> Result<()> {
         let reader = TsMemoryReader::new("../../local/sample.ts")?;
-        assert!(reader.len() > 0, "There should be packets in the file");
+        assert!(!reader.is_empty(), "There should be packets in the file");
 
         for i in 0..reader.len() {
             let pkt = reader.at(i)?;

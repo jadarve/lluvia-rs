@@ -31,12 +31,9 @@ impl CommandBufferBuilder {
         allocator: Arc<StandardCommandBufferAllocator>,
         queue_family_index: u32,
     ) -> Result<Self, CommandBufferError> {
-        let builder = AutoCommandBufferBuilder::primary(
-            allocator,
-            queue_family_index,
-            CommandBufferUsage::OneTimeSubmit,
-        )
-        .map_err(|e| CommandBufferError::RuntimeError(e.to_string()))?;
+        let builder =
+            AutoCommandBufferBuilder::primary(allocator, queue_family_index, CommandBufferUsage::OneTimeSubmit)
+                .map_err(|e| CommandBufferError::RuntimeError(e.to_string()))?;
 
         Ok(Self { builder })
     }
@@ -57,10 +54,13 @@ impl CommandBufferBuilder {
     }
 
     pub(crate) fn build(self) -> Result<Arc<PrimaryAutoCommandBuffer>, CommandBufferError> {
-        self.builder.build().map_err(|e| CommandBufferError::RuntimeError(e.to_string()))
+        self.builder
+            .build()
+            .map_err(|e| CommandBufferError::RuntimeError(e.to_string()))
     }
 }
 
+#[derive(Clone)]
 pub struct CommandBuffer {
     pub(crate) inner: Arc<PrimaryAutoCommandBuffer>,
 }

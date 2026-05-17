@@ -111,8 +111,8 @@ mod tests {
         let floats: &[f32] = bytemuck::cast_slice(&data);
         println!("{floats:?}");
 
-        for i in 0..floats.len() {
-            assert_eq!(floats[i], i as f32);
+        for (i, item) in floats.iter().enumerate() {
+            assert_eq!(*item, i as f32);
         }
 
         Ok(())

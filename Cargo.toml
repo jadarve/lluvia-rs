@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/lluvia_vk", "crates/lluvia_media", "crates/lluvia_webgpu"]
+members = ["crates/lluvia_vk", "crates/lluvia_media", "crates/lluvia_webgpu", "bindings/python/pyo3-lluvia-vk"]
 
 
 ###########################################################
@@ -16,6 +16,7 @@ flume = { version = "0.12.0" }
 foldhash = { version = "0.1.5" }
 mlua = { version = "0.11.6", features = ["luau"] }
 pollster = { version = "0.4.0" }
+pyo3 = { version = "0.21.2", features = ["extension-module", "anyhow"] }
 rstest = { version = "0.26.1" }
 thiserror = { version = "2.0.18" }
 tokio = { version = "1.52.1" }

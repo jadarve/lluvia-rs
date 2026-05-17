@@ -6,5 +6,5 @@ pub mod node;
 pub mod program;
 pub mod session;
 
-pub use session::*;
 pub use command_buffer::*;
+pub use session::*;
