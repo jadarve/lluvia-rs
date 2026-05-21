@@ -1,4 +1,3 @@
-
 use anyhow::Result;
 
 use super::{PacketView, PACKET_SIZE};

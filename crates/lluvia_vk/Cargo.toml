@@ -2,13 +2,28 @@
 name = "lluvia_vk"
 version = "0.1.0"
 edition = "2024"
+build = "build.rs"
+include = [
+    "src/**/*",
+    "resources/**/*.luau",
+    "resources/**/*.spv",
+    "resources/**/*.comp",
+    "build.rs",
+    "Cargo.toml",
+]
 
 [dependencies]
 bon = { workspace = true }
 bytemuck = { workspace = true }
 foldhash = { workspace = true }
+glam = { workspace = true }
 include_dir = { workspace = true }
-mlua = { workspace = true }
+mlua = { workspace = true, features = [
+    "luau",
+    "serde",
+    "userdata-wrappers",
+    "send",
+] }
 thiserror = { workspace = true }
 vulkano = { workspace = true }
 

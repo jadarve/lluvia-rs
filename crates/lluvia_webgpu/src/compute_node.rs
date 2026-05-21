@@ -113,8 +113,6 @@ impl ComputeNode {
             bind_group_entries.push(wgpu::BindGroupEntry { binding, resource });
         }
 
-        
-
         self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("bind_group"),
             layout: &bind_group_layout,

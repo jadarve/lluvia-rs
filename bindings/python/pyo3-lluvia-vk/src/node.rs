@@ -85,17 +85,27 @@ impl PyComputeNodeDescriptor {
     }
 
     pub fn local_shape(&mut self, shape: [u32; 3]) {
-        let inner = self.inner.clone().local_shape(shape);
+        let inner = self
+            .inner
+            .clone()
+            .local_shape(&lluvia_vk::math::UVec3::new(shape[0], shape[1], shape[2]));
         self.inner = inner;
     }
 
     pub fn grid_shape(&mut self, shape: [u32; 3]) {
-        let inner = self.inner.clone().grid_shape(shape);
+        let inner = self
+            .inner
+            .clone()
+            .grid_shape(&lluvia_vk::math::UVec3::new(shape[0], shape[1], shape[2]));
         self.inner = inner;
     }
 
     pub fn configure_grid_shape(&mut self, global_shape: [u32; 3]) {
-        let inner = self.inner.clone().configure_grid_shape(global_shape);
+        let inner = self.inner.clone().configure_grid_shape(&lluvia_vk::math::UVec3::new(
+            global_shape[0],
+            global_shape[1],
+            global_shape[2],
+        ));
         self.inner = inner;
     }
 
@@ -127,14 +137,15 @@ impl PyComputeNode {
     }
 
     pub fn grid_shape(&self) -> [u32; 3] {
-        self.inner.grid_shape()
+        self.inner.grid_shape().inner.to_array()
     }
 
     pub fn set_grid_shape(&mut self, shape: [u32; 3]) {
-        self.inner.set_grid_shape(shape)
+        self.inner
+            .set_grid_shape(&lluvia_vk::math::UVec3::new(shape[0], shape[1], shape[2]))
     }
 
     pub fn local_shape(&self) -> [u32; 3] {
-        self.inner.local_shape()
+        self.inner.local_shape().inner.to_array()
     }
 }

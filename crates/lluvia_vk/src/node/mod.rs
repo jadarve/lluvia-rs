@@ -24,6 +24,8 @@ use vulkano::descriptor_set::{DescriptorSet, WriteDescriptorSet};
 
 use crate::program::Program;
 
+use crate::math;
+
 #[derive(Error, Debug)]
 pub enum ComputeNodeError {
     #[error("Compute node creation failed: {0}")]
@@ -128,9 +130,9 @@ pub struct ComputeNodeDescriptor {
     pub function_name: String,
 
     // FIXME: should use some linear algebra to represent this.
-    local_shape: [u32; 3],
-    grid_shape: [u32; 3],
-    ports: Vec<PortDescriptor>,
+    pub local_shape: math::UVec3,
+    pub grid_shape: math::UVec3,
+    pub ports: Vec<PortDescriptor>,
     // parameters: HashMap<String, f64>,
     // push_constants: PushConstants,
 }
@@ -140,8 +142,8 @@ impl Default for ComputeNodeDescriptor {
         Self {
             program: None,
             function_name: "main".to_string(),
-            local_shape: [1, 1, 1],
-            grid_shape: [1, 1, 1],
+            local_shape: math::UVec3::ONE,
+            grid_shape: math::UVec3::ONE,
             ports: Vec::new(),
             // parameters: HashMap::new(),
             // push_constants: PushConstants::default(),
@@ -163,26 +165,22 @@ impl ComputeNodeDescriptor {
     }
 
     /// Sets the local workgroup shape `[x, y, z]`.
-    pub fn local_shape(mut self, shape: [u32; 3]) -> Self {
-        self.local_shape = shape;
+    pub fn local_shape(mut self, shape: &math::UVec3) -> Self {
+        self.local_shape = *shape;
         self
     }
 
     /// Sets the dispatch grid shape `[x, y, z]`.
-    pub fn grid_shape(mut self, shape: [u32; 3]) -> Self {
-        self.grid_shape = shape;
+    pub fn grid_shape(mut self, shape: &math::UVec3) -> Self {
+        self.grid_shape = *shape;
         self
     }
 
     /// Computes the grid shape from a global shape: `grid = ceil(global / local)`.
-    pub fn configure_grid_shape(mut self, global_shape: [u32; 3]) -> Self {
-        for (grid, (global, local)) in self
-            .grid_shape
-            .iter_mut()
-            .zip(global_shape.iter().zip(self.local_shape.iter()))
-        {
-            *grid = global.div_ceil(*local);
-        }
+    pub fn configure_grid_shape(mut self, global_shape: &math::UVec3) -> Self {
+        self.grid_shape.inner.x = global_shape.inner.x.div_ceil(self.local_shape.inner.x);
+        self.grid_shape.inner.y = global_shape.inner.y.div_ceil(self.local_shape.inner.y);
+        self.grid_shape.inner.z = global_shape.inner.z.div_ceil(self.local_shape.inner.z);
         self
     }
 
@@ -203,12 +201,12 @@ impl ComputeNodeDescriptor {
     }
 
     /// Returns the local workgroup shape.
-    pub fn get_local_shape(&self) -> [u32; 3] {
+    pub fn get_local_shape(&self) -> math::UVec3 {
         self.local_shape
     }
 
     /// Returns the dispatch grid shape.
-    pub fn get_grid_shape(&self) -> [u32; 3] {
+    pub fn get_grid_shape(&self) -> math::UVec3 {
         self.grid_shape
     }
 
@@ -219,7 +217,7 @@ impl ComputeNodeDescriptor {
         if self.function_name.is_empty() {
             return Err(ComputeNodeError::InvalidFunctionName);
         }
-        if self.local_shape.contains(&0) {
+        if self.local_shape.inner.x == 0 || self.local_shape.inner.y == 0 || self.local_shape.inner.z == 0 {
             return Err(ComputeNodeError::InvalidLocalShape);
         }
         Ok(())
@@ -262,9 +260,9 @@ impl ComputeNode {
         // TODO: should use some linear algebra to represent this.
         let local_shape = &descriptor.local_shape;
 
-        specialization_constants.insert(1, (local_shape[0]).into());
-        specialization_constants.insert(2, (local_shape[1]).into());
-        specialization_constants.insert(3, (local_shape[2]).into());
+        specialization_constants.insert(1, (local_shape.inner.x).into());
+        specialization_constants.insert(2, (local_shape.inner.y).into());
+        specialization_constants.insert(3, (local_shape.inner.z).into());
 
         let shader_module: Arc<SpecializedShaderModule> = program
             .shader_module()
@@ -315,17 +313,17 @@ impl ComputeNode {
     }
 
     /// Returns the grid shape `[x, y, z]`.
-    pub fn grid_shape(&self) -> [u32; 3] {
+    pub fn grid_shape(&self) -> math::UVec3 {
         self.descriptor.grid_shape
     }
 
     /// Sets the grid shape.
-    pub fn set_grid_shape(&mut self, shape: [u32; 3]) {
-        self.descriptor.grid_shape = shape;
+    pub fn set_grid_shape(&mut self, shape: &math::UVec3) {
+        self.descriptor.grid_shape = *shape;
     }
 
     /// Returns the local workgroup shape.
-    pub fn local_shape(&self) -> [u32; 3] {
+    pub fn local_shape(&self) -> math::UVec3 {
         self.descriptor.local_shape
     }
 
@@ -390,7 +388,10 @@ impl Node for ComputeNode {
     }
 
     fn record(&self, builder: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>) -> Result<(), ComputeNodeError> {
-        if self.descriptor.grid_shape.contains(&0) {
+        if self.descriptor.grid_shape.inner.x == 0
+            || self.descriptor.grid_shape.inner.y == 0
+            || self.descriptor.grid_shape.inner.z == 0
+        {
             return Err(ComputeNodeError::DispatchFailed("Grid shape contains zero".to_string()));
         }
 
@@ -411,7 +412,7 @@ impl Node for ComputeNode {
 
         unsafe {
             builder
-                .dispatch(self.descriptor.grid_shape)
+                .dispatch(self.descriptor.grid_shape.inner.to_array())
                 .map_err(|e| ComputeNodeError::DispatchFailed(e.to_string()))?;
         }
 

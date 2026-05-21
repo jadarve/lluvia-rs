@@ -27,4 +27,5 @@
         "editor.formatOnSave": true
     },
     "python.defaultInterpreterPath": "~/.pyenv/versions/lluvia-rs/bin/python3",
+    "stylua.targetReleaseVersion": "latest",
 }

@@ -80,8 +80,8 @@ mod tests {
         let descriptor = ll::node::ComputeNodeDescriptor::default()
             .program(program)
             .function_name("main")
-            .local_shape([32, 1, 1])
-            .grid_shape([4, 1, 1])
+            .local_shape(&lluvia_vk::math::UVec3::new(32, 1, 1))
+            .grid_shape(&lluvia_vk::math::UVec3::new(4, 1, 1))
             .add_port(ll::node::PortDescriptor {
                 binding: 0,
                 name: "out0".to_string(),
