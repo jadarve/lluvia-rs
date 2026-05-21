@@ -1,26 +1,34 @@
 --!strict
 
 local compute_node_builder = require("@lib/ll/compute_node_builder.luau")
--- export type ComptueNodeBuidler = compute_node_builder.ComputeNodeBuilder
+export type ComptueNodeBuidler = compute_node_builder.ComputeNodeBuilder
 
-local module = {}
+local module = {
+	compute_node_builders = {} :: { [string]: ComptueNodeBuidler },
+}
 
-function module.register_compute_node_builder(builder: ComptueNodeBuidler) end
+function module:register_compute_node_builder(builder: ComptueNodeBuidler)
+	self.compute_node_builders[builder.name] = builder
+end
+
+function module:get_compute_node_builder(name: string): ComptueNodeBuidler
+	return self.compute_node_builders[name]
+end
 
 -----------------------------------------------------------
 -- LOGGING
 -----------------------------------------------------------
-function module.log_info(msg: string)
+function module:log_info(msg: string)
 	-- TODO
 	print(msg)
 end
 
-function module.log_warn(msg: string)
+function module:log_warn(msg: string)
 	-- TODO
 	print(msg)
 end
 
-function module.log_error(msg: string)
+function module:log_error(msg: string)
 	-- TODO
 	print(msg)
 end
@@ -28,7 +36,7 @@ end
 -----------------------------------------------------------
 -- ComputeNodeDescriptor
 -----------------------------------------------------------
-function module.ComputeNodeDescriptor()
+function module.ComputeNodeDescriptor(): ComputeNodeDescriptor
 	return ComputeNodeDescriptor()
 end
 

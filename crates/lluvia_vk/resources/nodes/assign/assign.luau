@@ -19,7 +19,7 @@ local builder: ll.ComptueNodeBuidler = {
 
 		-- desc:addPort(ll.PortDescriptor.new(0, "out_buffer", ll.PortDirection.Out, ll.PortType.Buffer))
 
-		ll.log_info("assign.new_descriptor(): finish")
+		ll:log_info("assign.new_descriptor(): finish")
 
 		return desc
 	end,
@@ -28,7 +28,7 @@ local builder: ll.ComptueNodeBuidler = {
 }
 
 -- TOTHINK: either register the builder here
-ll.register_compute_node_builder(builder)
+ll:register_compute_node_builder(builder)
 
 -- or return it as a module
 return builder

@@ -15,9 +15,9 @@
     "luau-lsp.types.disabledGlobals": [
         "roblox"
     ],
-    "luau-lsp.types.definitionFiles": {
-        "native": "crates/lluvia_vk/resources/luau/definitions/native.d.luau"
-    },
+    "luau-lsp.types.definitionFiles": [
+        "crates/lluvia_vk/resources/luau/definitions/native.d.luau"
+    ],
     "[luau]": {
         "editor.defaultFormatter": "JohnnyMorganz.stylua",
         "editor.formatOnSave": true
