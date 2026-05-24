@@ -40,6 +40,15 @@ pub enum ComputeNodeError {
     #[error("Invalid local shape: all components must be > 0")]
     InvalidLocalShape,
 
+    #[error("Invalid port direction: {0}")]
+    InvalidPortDirection(u32),
+
+    #[error("Invalid port type: {0}")]
+    InvalidPortType(u32),
+
+    #[error("Invalid node type: {0}")]
+    InvalidNodeType(u32),
+
     #[error("Dispatch failed: {0}")]
     DispatchFailed(String),
 
@@ -53,16 +62,58 @@ pub enum ComputeNodeError {
 
 /// Direction of a port (input or output).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u32)]
 pub enum PortDirection {
-    In,
-    Out,
+    In = 0,
+    Out = 1,
 }
+
+impl From<PortDirection> for u32 {
+    fn from(direction: PortDirection) -> u32 {
+        direction as u32
+    }
+}
+
+impl TryFrom<u32> for PortDirection {
+    type Error = ComputeNodeError;
+
+    fn try_from(direction: u32) -> Result<Self, Self::Error> {
+        match direction {
+            0 => Ok(PortDirection::In),
+            1 => Ok(PortDirection::Out),
+            _ => Err(ComputeNodeError::InvalidPortDirection(direction)),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// PortType
+// ---------------------------------------------------------------------------
 
 /// Type of object a port accepts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u32)]
 pub enum PortType {
-    Buffer,
-    ImageView,
+    Buffer = 0,
+    ImageView = 1,
+}
+
+impl From<PortType> for u32 {
+    fn from(port_type: PortType) -> u32 {
+        port_type as u32
+    }
+}
+
+impl TryFrom<u32> for PortType {
+    type Error = ComputeNodeError;
+
+    fn try_from(port_type: u32) -> Result<Self, Self::Error> {
+        match port_type {
+            0 => Ok(PortType::Buffer),
+            1 => Ok(PortType::ImageView),
+            _ => Err(ComputeNodeError::InvalidPortType(port_type)),
+        }
+    }
 }
 
 /// Descriptor for a node port, mirroring C++ `ll::PortDescriptor`.
@@ -74,12 +125,49 @@ pub struct PortDescriptor {
     pub port_type: PortType,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NodeType {
-    Compute,
-    Container,
+impl Default for PortDescriptor {
+    fn default() -> Self {
+        Self {
+            binding: 0,
+            name: String::new(),
+            direction: PortDirection::In,
+            port_type: PortType::Buffer,
+        }
+    }
 }
 
+// ---------------------------------------------------------------------------
+// NodeType
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u32)]
+pub enum NodeType {
+    Compute = 0,
+    Container = 1,
+}
+
+impl From<NodeType> for u32 {
+    fn from(node_type: NodeType) -> u32 {
+        node_type as u32
+    }
+}
+
+impl TryFrom<u32> for NodeType {
+    type Error = ComputeNodeError;
+
+    fn try_from(node_type: u32) -> Result<Self, Self::Error> {
+        match node_type {
+            0 => Ok(NodeType::Compute),
+            1 => Ok(NodeType::Container),
+            _ => Err(ComputeNodeError::InvalidNodeType(node_type)),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// NodePort
+// ---------------------------------------------------------------------------
 #[derive(Clone)]
 pub enum NodePort {
     Buffer(Arc<Buffer>),
@@ -115,6 +203,15 @@ pub trait Node {
     fn has_port(&self, name: &str) -> bool;
     fn port(&self, name: &str) -> Option<&NodePort>;
     fn record(&self, builder: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>) -> Result<(), ComputeNodeError>;
+}
+
+/// Trait for compute node builders, mirroring C++ and Luau builders.
+pub trait ComputeNodeBuilder: Send {
+    /// Returns the node descriptor configured by the builder.
+    fn get_descriptor(&self) -> ComputeNodeDescriptor;
+
+    /// Initializes the compute node (e.g., configures its grid shape or other state based on bound ports).
+    fn init_node(&self, node: &mut ComputeNode) -> Result<(), ComputeNodeError>;
 }
 
 // ---------------------------------------------------------------------------

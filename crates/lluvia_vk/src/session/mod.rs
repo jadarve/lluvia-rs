@@ -75,6 +75,7 @@ pub struct Session {
     allocator: Arc<StandardMemoryAllocator>,
     descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
+    interpreter: Arc<std::sync::Mutex<crate::interpreter::Interpreter>>,
 }
 
 impl Session {
@@ -143,6 +144,10 @@ impl Session {
             Arc::new(StandardDescriptorSetAllocator::new(device.clone(), Default::default()));
         let command_buffer_allocator =
             Arc::new(StandardCommandBufferAllocator::new(device.clone(), Default::default()));
+        let interpreter = Arc::new(std::sync::Mutex::new(
+            crate::interpreter::Interpreter::new()
+                .map_err(|e| SessionError::RuntimeError(format!("Failed to create Interpreter: {e:?}")))?,
+        ));
 
         Ok(Arc::new(Self {
             // instance,
@@ -151,6 +156,7 @@ impl Session {
             allocator,
             descriptor_set_allocator,
             command_buffer_allocator,
+            interpreter,
         }))
     }
 
@@ -249,6 +255,53 @@ impl Session {
 
     pub fn device(&self) -> Arc<Device> {
         self.device.clone()
+    }
+
+    pub fn load_compute_node_builder(
+        self: &Arc<Self>,
+        name: &str,
+    ) -> Result<Option<Box<dyn crate::node::ComputeNodeBuilder>>, SessionError> {
+        let name_parts: Vec<&str> = name.split('/').collect();
+        let last_part = name_parts
+            .last()
+            .ok_or_else(|| SessionError::RuntimeError(format!("Invalid compute node builder name: {name}")))?;
+
+        let luau_path = format!("{name}/{last_part}.luau");
+        let spv_path = format!("{name}/{last_part}.spv");
+
+        let luau_file = match crate::node_repository::NODES_DIR.get_file(&luau_path) {
+            Some(file) => file,
+            None => return Ok(None),
+        };
+
+        let spv_file = match crate::node_repository::NODES_DIR.get_file(&spv_path) {
+            Some(file) => file,
+            None => return Ok(None),
+        };
+
+        let spv_bytes = spv_file.contents().to_vec();
+        let program = Arc::new(
+            self.create_program(spv_bytes)
+                .map_err(|e| SessionError::RuntimeError(format!("Failed to create program from SPIR-V: {e:?}")))?,
+        );
+
+        let script_content = std::str::from_utf8(luau_file.contents())
+            .map_err(|e| SessionError::RuntimeError(format!("Invalid Luau script content: {e:?}")))?;
+
+        let (descriptor, builder_table_key) = {
+            let interpreter = self.interpreter.lock().unwrap();
+            interpreter
+                .load_compute_node_builder(script_content, program)
+                .map_err(|e| SessionError::RuntimeError(format!("Interpreter failed to load builder: {e:?}")))?
+        };
+
+        let builder = crate::interpreter::LuauComputeNodeBuilder {
+            interpreter: self.interpreter.clone(),
+            descriptor,
+            builder_table_key,
+        };
+
+        Ok(Some(Box::new(builder)))
     }
 }
 

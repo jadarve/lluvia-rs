@@ -17,14 +17,22 @@ local builder: ll.ComptueNodeBuidler = {
 		-- TODO: program
 		-- TODO: builder_name
 
-		-- desc:addPort(ll.PortDescriptor.new(0, "out_buffer", ll.PortDirection.Out, ll.PortType.Buffer))
+		desc:addPort(ll.PortDescriptor.new(0, "out_buffer", ll.PortDirection.Out, ll.PortType.Buffer))
+
+		-- TODO: support parameters
+		-- desc:setParameter('camera_model', 0)
 
 		ll:log_info("assign.new_descriptor(): finish")
 
 		return desc
 	end,
 
-	on_node_init = function() end,
+	on_node_init = function(self, node)
+		local out_buffer = node:getPort('out_buffer')
+		local N = out_buffer // 4
+
+		node:configureGridShape(ll.vec3ui.new(N, 1, 1))
+	end,
 }
 
 -- TOTHINK: either register the builder here

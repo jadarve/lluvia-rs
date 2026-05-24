@@ -19,6 +19,13 @@ impl mlua::UserData for math::Vec3 {
             Ok(())
         });
     }
+
+    fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {
+        methods.add_meta_function(
+            mlua::MetaMethod::Call,
+            |_, _self: mlua::Value| Ok(math::Vec3::default()),
+        );
+    }
 }
 
 ///////////////////////////////////////////////////////////
@@ -38,6 +45,12 @@ impl mlua::UserData for math::UVec3 {
         fields.add_field_method_set("z", |_, this, z| {
             this.inner.z = z;
             Ok(())
+        });
+    }
+
+    fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {
+        methods.add_meta_function(mlua::MetaMethod::Call, |_, _self: mlua::Value| {
+            Ok(math::UVec3::default())
         });
     }
 }

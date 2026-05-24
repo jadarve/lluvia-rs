@@ -18,6 +18,17 @@ end
 declare function UVec3(): UVec3
 
 -----------------------------------------------------------
+
+declare class PortDescriptor
+    binding: number
+    name: string
+    direction: number
+    port_type: number
+end
+
+declare function PortDescriptor(binding: number, name: string, direction: number, port_type: number)
+
+-----------------------------------------------------------
 declare class ComputeNodeDescriptor
     function_name: string
     local_shape: UVec3

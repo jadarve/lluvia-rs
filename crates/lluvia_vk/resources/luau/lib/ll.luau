@@ -7,6 +7,28 @@ local module = {
 	compute_node_builders = {} :: { [string]: ComptueNodeBuidler },
 }
 
+module.PortDirection = {
+	In = 0,
+	Out = 1,
+}
+
+module.PortType = {
+	Buffer = 0,
+	ImageView = 1,
+}
+
+module.PortDescriptor = {
+	new = function(binding: number, name: string, direction: number, port_type: number)
+		return PortDescriptor(binding, name, direction, port_type)
+	end,
+}
+
+module.vec3ui = {
+	new = function(x: number, y: number, z: number)
+		return module.UVec3(x, y, z)
+	end,
+}
+
 function module:register_compute_node_builder(builder: ComptueNodeBuidler)
 	self.compute_node_builders[builder.name] = builder
 end
