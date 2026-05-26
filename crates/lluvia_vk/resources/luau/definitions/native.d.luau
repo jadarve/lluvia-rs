@@ -32,6 +32,8 @@ declare function PortDescriptor(binding: number, name: string, direction: number
 declare class Program
 end
 
+declare function load_program(path: string): Program
+
 -----------------------------------------------------------
 declare class ComputeNodeDescriptor
     function_name: string

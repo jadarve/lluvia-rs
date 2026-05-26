@@ -155,4 +155,24 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_luau_load_program() -> Result<()> {
+        let session = ll::Session::new(ll::SessionDescriptor::default())?;
+
+        // Evaluate a Luau snippet that calls ll.load_program via the native
+        // global injected by set_session.  The `lluvia/assign/assign` shader
+        // is embedded in the crate, so it must be found.
+        let script = r#"
+            local ll = require("@lib/ll.luau")
+            local program = ll.load_program("lluvia/assign/assign")
+            assert(program ~= nil, "load_program returned nil")
+        "#;
+
+        session
+            .run_script(script)
+            .map_err(|e| anyhow::anyhow!("Luau error: {e}"))?;
+
+        Ok(())
+    }
 }

@@ -158,7 +158,7 @@ impl Session {
         let repositories: Vec<Arc<Box<dyn Repository>>> =
             vec![Arc::new(Box::new(crate::node_repository::InternalRepository {}))];
 
-        Ok(Arc::new(Self {
+        let session = Arc::new(Self {
             // instance,
             device,
             compute_queue,
@@ -167,7 +167,19 @@ impl Session {
             command_buffer_allocator,
             interpreter,
             repositories,
-        }))
+        });
+
+        // Register a weak back-reference in the interpreter so Luau globals
+        // (e.g. `load_program`) can reach the session without creating a
+        // strong reference cycle.
+        session
+            .interpreter
+            .lock()
+            .map_err(|_| SessionError::RuntimeError("Interpreter lock poisoned".to_string()))?
+            .set_session(Arc::downgrade(&session))
+            .map_err(|e| SessionError::RuntimeError(format!("Failed to register session globals: {e}")))?;
+
+        Ok(session)
     }
 
     // pub(crate) fn instance(&self) -> Arc<Instance> {
@@ -265,6 +277,23 @@ impl Session {
 
     pub fn device(&self) -> Arc<Device> {
         self.device.clone()
+    }
+
+    /// Evaluates a Luau script in this session's interpreter.
+    ///
+    /// Session-level globals (e.g. `load_program`) are available because
+    /// [`Session::new`] already wired the back-reference.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SessionError::RuntimeError`] if the interpreter lock is
+    /// poisoned or if the script raises a Luau error.
+    pub fn run_script(&self, script: &str) -> Result<(), SessionError> {
+        self.interpreter
+            .lock()
+            .map_err(|_| SessionError::RuntimeError("Interpreter lock poisoned".to_string()))?
+            .exec_script(script)
+            .map_err(|e| SessionError::RuntimeError(e.to_string()))
     }
 
     pub fn load_program(&self, path: &str) -> Result<Program, ProgramError> {

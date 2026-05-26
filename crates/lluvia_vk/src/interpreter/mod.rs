@@ -2,7 +2,7 @@ mod wrappers;
 
 use crate::interpreter::wrappers::compute_node::LuaComputeNode;
 use crate::math;
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 use thiserror::Error;
 
 use crate::node::ComputeNodeDescriptor;
@@ -147,6 +147,61 @@ impl Interpreter {
         register_native_types(&globals)?;
 
         Ok(Self { lua })
+    }
+
+    /// Registers a back-reference to the owning [`Session`].
+    ///
+    /// Stores a [`Weak<Session>`] in the Lua VM's app-data so that native
+    /// globals (e.g. `load_program`) can upgrade it at call time without
+    /// creating a strong reference cycle between [`Session`] and
+    /// [`Interpreter`].
+    ///
+    /// This must be called once, immediately after [`Session::new`] finishes
+    /// constructing `Arc<Session>`.
+    pub fn set_session(&self, session: Weak<crate::session::Session>) -> Result<(), InterpreterError> {
+        self.lua.set_app_data(session);
+        self.register_session_globals()
+    }
+
+    /// Injects native globals that resolve through the stored weak Session.
+    fn register_session_globals(&self) -> Result<(), InterpreterError> {
+        let globals = self.lua.globals();
+
+        let load_program_fn = self
+            .lua
+            .create_function(|lua, path: String| {
+                let weak = lua
+                    .app_data_ref::<Weak<crate::session::Session>>()
+                    .ok_or_else(|| mlua::Error::RuntimeError("Session not registered".to_string()))?;
+
+                let session = weak
+                    .upgrade()
+                    .ok_or_else(|| mlua::Error::RuntimeError("Session has been dropped".to_string()))?;
+
+                session
+                    .load_program(&path)
+                    .map_err(|e| mlua::Error::RuntimeError(e.to_string()))
+            })
+            .map_err(|e| InterpreterError::RuntimeError {
+                msg: format!("Failed to create load_program closure: {e}"),
+            })?;
+
+        globals
+            .set("load_program", load_program_fn)
+            .map_err(|e| InterpreterError::RuntimeError {
+                msg: format!("Failed to register load_program global: {e}"),
+            })
+    }
+
+    /// Evaluates a Luau script in the interpreter's VM.
+    ///
+    /// Session-level globals (e.g. `load_program`) are available if
+    /// [`Interpreter::set_session`] has already been called.
+    pub fn exec_script(&self, script: &str) -> Result<(), InterpreterError> {
+        self.lua
+            .load(script)
+            .exec()
+            .map_err(|e| InterpreterError::RuntimeError { msg: e.to_string() })
     }
 
     pub fn load_compute_node_builder(
