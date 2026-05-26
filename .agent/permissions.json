@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "command(cargo build)",
+      "command(cargo test)",
+      "command(cargo fmt)",
+      "command(cargo clippy)"
+    ]
+  }
+}
