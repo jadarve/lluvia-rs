@@ -117,17 +117,17 @@ impl crate::node::ComputeNodeBuilder for LuauComputeNodeBuilder {
             }
         })?;
 
-        let get_descriptor_fn: mlua::Function =
+        let new_descriptor_fn: mlua::Function =
             builder_table
-                .get("get_descriptor")
+                .get("new_descriptor")
                 .map_err(|e| crate::node::ComputeNodeBuilderError::RuntimeError {
-                    msg: format!("get_descriptor function not found on builder table: {e}"),
+                    msg: format!("new_descriptor function not found on builder table: {e}"),
                 })?;
 
-        let descriptor_ref: mlua::UserDataRef<crate::node::ComputeNodeDescriptor> = get_descriptor_fn
+        let descriptor_ref: mlua::UserDataRef<crate::node::ComputeNodeDescriptor> = new_descriptor_fn
             .call((builder_table.clone(),))
             .map_err(|e| crate::node::ComputeNodeBuilderError::RuntimeError {
-                msg: format!("get_descriptor call failed: {e}"),
+                msg: format!("new_descriptor call failed: {e}"),
             })?;
 
         Ok(descriptor_ref.clone())
