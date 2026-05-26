@@ -8,7 +8,7 @@ export type ComputeNodeBuilder = {
 	new_descriptor: (self: ComputeNodeBuilder) -> ComputeNodeDescriptor,
 
 	-- TODO: receive the ComputeNode. Return something?
-	on_node_init: (self: ComputeNodeBuilder) -> nil,
+	on_node_init: (self: ComputeNodeBuilder, node: ComputeNode) -> nil,
 }
 
 return {}

@@ -29,6 +29,11 @@ module.vec3ui = {
 	end,
 }
 
+function module.load_program(path: string): Program?
+	-- TODO
+	return nil
+end
+
 function module:register_compute_node_builder(builder: ComptueNodeBuidler)
 	self.compute_node_builders[builder.name] = builder
 end

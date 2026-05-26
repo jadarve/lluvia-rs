@@ -223,7 +223,7 @@ pub trait ComputeNodeBuilder: Send {
 /// Mirrors C++ `ll::ComputeNodeDescriptor`.
 #[derive(Clone)]
 pub struct ComputeNodeDescriptor {
-    program: Option<Arc<Program>>,
+    pub(crate) program: Option<Program>,
     pub function_name: String,
 
     // FIXME: should use some linear algebra to represent this.
@@ -250,7 +250,7 @@ impl Default for ComputeNodeDescriptor {
 
 impl ComputeNodeDescriptor {
     /// Sets the shader program.
-    pub fn program(mut self, program: Arc<Program>) -> Self {
+    pub fn program(mut self, program: Program) -> Self {
         self.program = Some(program);
         self
     }
@@ -288,7 +288,7 @@ impl ComputeNodeDescriptor {
     }
 
     /// Returns the program, if set.
-    pub fn get_program(&self) -> Option<&Arc<Program>> {
+    pub fn get_program(&self) -> Option<&Program> {
         self.program.as_ref()
     }
 

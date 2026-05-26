@@ -1,13 +1,31 @@
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum RepositoryError {
+    #[error("Failed to load resource: {0}")]
+    FailedToLoad(String),
+}
+
+pub trait Repository: Sync + Send {
+    fn load(&self, path: &str) -> Result<Vec<u8>, RepositoryError>;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Repository impl
+///////////////////////////////////////////////////////////////////////////////
+
 pub(crate) static NODES_DIR: include_dir::Dir = include_dir::include_dir!("$CARGO_MANIFEST_DIR/resources/nodes/");
+pub struct InternalRepository {}
 
-pub struct NodeRepository {}
+impl Repository for InternalRepository {
+    fn load(&self, path: &str) -> Result<Vec<u8>, RepositoryError> {
+        let file = NODES_DIR
+            .get_file(path)
+            .ok_or_else(|| RepositoryError::FailedToLoad(path.to_string()))?;
 
-impl NodeRepository {
-    #[allow(dead_code)]
-    fn new() -> Self {
-        for _d in NODES_DIR.dirs() {}
+        let file_content = file.contents().to_vec();
 
-        Self {}
+        Ok(file_content)
     }
 }
 

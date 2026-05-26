@@ -46,7 +46,7 @@ impl PySession {
             .inner
             .create_program(spirv)
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-        Ok(PyProgram { inner: Arc::new(inner) })
+        Ok(PyProgram { inner })
     }
 
     pub fn create_compute_node(&self, descriptor: &PyComputeNodeDescriptor) -> PyResult<PyComputeNode> {

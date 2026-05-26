@@ -17,6 +17,7 @@ pub enum ProgramError {
 /// A compiled shader program loaded from SPIR-V bytecode.
 ///
 /// Mirrors C++ `ll::Program`.
+#[derive(Clone)]
 pub struct Program {
     module: Arc<ShaderModule>,
 }

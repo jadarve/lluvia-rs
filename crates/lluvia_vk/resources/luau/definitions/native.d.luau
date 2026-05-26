@@ -29,15 +29,29 @@ end
 declare function PortDescriptor(binding: number, name: string, direction: number, port_type: number)
 
 -----------------------------------------------------------
+declare class Program
+end
+
+-----------------------------------------------------------
 declare class ComputeNodeDescriptor
     function_name: string
     local_shape: UVec3
     grid_shape: UVec3
+    program: Program?
 
     -- function configure_grid_shape(self, global_shape: UVec3)
+
+    function add_port(self, desc: PortDescriptor): nil
 end
 
 declare function ComputeNodeDescriptor(): ComputeNodeDescriptor
+
+-----------------------------------------------------------
+declare class ComputeNode
+
+    function getPort(self, name: string): any
+    function configureGridShape(self, shape: UVec3): nil
+end
 
 -----------------------------------------------------------
 declare class Session

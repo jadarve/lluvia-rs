@@ -19,6 +19,15 @@ impl mlua::UserData for ComputeNodeDescriptor {
             this.grid_shape = *val;
             Ok(())
         });
+
+        fields.add_field_method_get("program", |_, this| Ok(this.program.clone()));
+        fields.add_field_method_set(
+            "program",
+            |_, this, val: Option<mlua::UserDataRef<crate::program::Program>>| {
+                this.program = val.map(|p| p.clone());
+                Ok(())
+            },
+        );
     }
 
     fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {

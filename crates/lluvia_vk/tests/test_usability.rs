@@ -75,7 +75,7 @@ mod tests {
         let staging_buffer = session.create_buffer_host_visible(512)?;
 
         let sh = vs::load(session.device())?;
-        let program = std::sync::Arc::new(session.create_program_from_shader_module(sh)?);
+        let program = session.create_program_from_shader_module(sh)?;
 
         let descriptor = ll::node::ComputeNodeDescriptor::default()
             .program(program)

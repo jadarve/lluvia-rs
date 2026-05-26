@@ -152,7 +152,7 @@ impl Interpreter {
     pub fn load_compute_node_builder(
         &self,
         script_content: &str,
-        program: Arc<crate::program::Program>,
+        program: crate::program::Program,
     ) -> Result<(crate::node::ComputeNodeDescriptor, mlua::RegistryKey), InterpreterError> {
         let builder_table: mlua::Table = self
             .lua

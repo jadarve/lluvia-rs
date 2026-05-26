@@ -5,8 +5,8 @@ impl mlua::UserData for PortDescriptor {
         methods.add_meta_function(
             mlua::MetaMethod::Call,
             |_, (_self, binding, name, direction, port_type): (mlua::Value, u32, String, u32, u32)| {
-                let direction = PortDirection::try_from(direction).map_err(|e| mlua::Error::external(e))?;
-                let port_type = PortType::try_from(port_type).map_err(|e| mlua::Error::external(e))?;
+                let direction = PortDirection::try_from(direction).map_err(mlua::Error::external)?;
+                let port_type = PortType::try_from(port_type).map_err(mlua::Error::external)?;
 
                 Ok(PortDescriptor {
                     binding,
@@ -33,13 +33,13 @@ impl mlua::UserData for PortDescriptor {
 
         fields.add_field_method_get("direction", |_, this| Ok(u32::from(this.direction)));
         fields.add_field_method_set("direction", |_, this, val: u32| {
-            this.direction = PortDirection::try_from(val).map_err(|e| mlua::Error::external(e))?;
+            this.direction = PortDirection::try_from(val).map_err(mlua::Error::external)?;
             Ok(())
         });
 
         fields.add_field_method_get("port_type", |_, this| Ok(u32::from(this.port_type)));
         fields.add_field_method_set("port_type", |_, this, val: u32| {
-            this.port_type = PortType::try_from(val).map_err(|e| mlua::Error::external(e))?;
+            this.port_type = PortType::try_from(val).map_err(mlua::Error::external)?;
             Ok(())
         });
     }

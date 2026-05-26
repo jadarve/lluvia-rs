@@ -12,6 +12,7 @@ use vulkano::memory::allocator::StandardMemoryAllocator;
 use crate::buffer::{Buffer, BufferError};
 use crate::command_buffer::{CommandBuffer, CommandBufferBuilder, CommandBufferError};
 use crate::node::{ComputeNode, ComputeNodeDescriptor, ComputeNodeError};
+use crate::node_repository::Repository;
 use crate::program::{Program, ProgramError};
 
 #[derive(Error, Debug)]
@@ -76,6 +77,8 @@ pub struct Session {
     descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
     interpreter: Arc<std::sync::Mutex<crate::interpreter::Interpreter>>,
+
+    repositories: Vec<Arc<Box<dyn Repository>>>,
 }
 
 impl Session {
@@ -149,6 +152,12 @@ impl Session {
                 .map_err(|e| SessionError::RuntimeError(format!("Failed to create Interpreter: {e:?}")))?,
         ));
 
+        ///////////////////////////////////////////////////////////////////////
+        // Default crate repository
+
+        let repositories: Vec<Arc<Box<dyn Repository>>> =
+            vec![Arc::new(Box::new(crate::node_repository::InternalRepository {}))];
+
         Ok(Arc::new(Self {
             // instance,
             device,
@@ -157,6 +166,7 @@ impl Session {
             descriptor_set_allocator,
             command_buffer_allocator,
             interpreter,
+            repositories,
         }))
     }
 
@@ -257,6 +267,25 @@ impl Session {
         self.device.clone()
     }
 
+    pub fn load_program(&self, path: &str) -> Result<Program, ProgramError> {
+        // validate if path contains .spv extension, if not, add it.
+        let path = if path.ends_with(".spv") {
+            path.to_string()
+        } else {
+            format!("{path}.spv")
+        };
+
+        for repo in self.repositories.iter() {
+            if let Ok(spirv) = repo.load(&path) {
+                return self.create_program(spirv);
+            }
+        }
+
+        Err(ProgramError::CreationFailed(format!(
+            "Failed to load program, not found: {path}"
+        )))
+    }
+
     pub fn load_compute_node_builder(
         self: &Arc<Self>,
         name: &str,
@@ -280,10 +309,9 @@ impl Session {
         };
 
         let spv_bytes = spv_file.contents().to_vec();
-        let program = Arc::new(
-            self.create_program(spv_bytes)
-                .map_err(|e| SessionError::RuntimeError(format!("Failed to create program from SPIR-V: {e:?}")))?,
-        );
+        let program = self
+            .create_program(spv_bytes)
+            .map_err(|e| SessionError::RuntimeError(format!("Failed to create program from SPIR-V: {e:?}")))?;
 
         let script_content = std::str::from_utf8(luau_file.contents())
             .map_err(|e| SessionError::RuntimeError(format!("Invalid Luau script content: {e:?}")))?;
