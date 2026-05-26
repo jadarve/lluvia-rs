@@ -126,7 +126,7 @@ mod tests {
 
         let builder = session.load_compute_node_builder("lluvia/assign")?;
 
-        let node_descriptor = builder.get_descriptor();
+        let node_descriptor = builder.get_descriptor()?;
         let mut compute_node = session.create_compute_node(node_descriptor)?;
 
         let device_buffer = session.create_buffer_device_local(512)?;
@@ -135,6 +135,9 @@ mod tests {
         use ll::node::Node;
         compute_node.bind("out_buffer", ll::node::NodePort::Buffer(device_buffer.clone()))?;
 
+        // this is different to Lluvia Cpp. There, the compute_node instance holds the reference to the builder
+        // so that when the node is initialized, the builder is called.
+        // Here the builder and the compute_node are independent.
         builder.init_node(&mut compute_node)?;
 
         let mut builder_cb = session.create_command_buffer_builder()?;

@@ -205,10 +205,17 @@ pub trait Node {
     fn record(&self, builder: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>) -> Result<(), ComputeNodeError>;
 }
 
+/// Error returned by [`ComputeNodeBuilder`] operations.
+#[derive(Error, Debug)]
+pub enum ComputeNodeBuilderError {
+    #[error("Runtime error: {msg}")]
+    RuntimeError { msg: String },
+}
+
 /// Trait for compute node builders, mirroring C++ and Luau builders.
 pub trait ComputeNodeBuilder: Send {
     /// Returns the node descriptor configured by the builder.
-    fn get_descriptor(&self) -> ComputeNodeDescriptor;
+    fn get_descriptor(&self) -> Result<ComputeNodeDescriptor, ComputeNodeBuilderError>;
 
     /// Initializes the compute node (e.g., configures its grid shape or other state based on bound ports).
     fn init_node(&self, node: &mut ComputeNode) -> Result<(), ComputeNodeError>;

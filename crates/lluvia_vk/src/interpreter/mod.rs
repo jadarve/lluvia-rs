@@ -103,13 +103,34 @@ pub enum InterpreterError {
 
 pub struct LuauComputeNodeBuilder {
     pub(crate) interpreter: Arc<std::sync::Mutex<Interpreter>>,
-    pub(crate) descriptor: crate::node::ComputeNodeDescriptor,
     pub(crate) builder_table_key: mlua::RegistryKey,
 }
 
 impl crate::node::ComputeNodeBuilder for LuauComputeNodeBuilder {
-    fn get_descriptor(&self) -> crate::node::ComputeNodeDescriptor {
-        self.descriptor.clone()
+    fn get_descriptor(&self) -> Result<crate::node::ComputeNodeDescriptor, crate::node::ComputeNodeBuilderError> {
+        let interpreter = self.interpreter.lock().unwrap();
+        let lua = &interpreter.lua;
+
+        let builder_table: mlua::Table = lua.registry_value(&self.builder_table_key).map_err(|e| {
+            crate::node::ComputeNodeBuilderError::RuntimeError {
+                msg: format!("Failed to retrieve builder table from registry: {e}"),
+            }
+        })?;
+
+        let get_descriptor_fn: mlua::Function =
+            builder_table
+                .get("get_descriptor")
+                .map_err(|e| crate::node::ComputeNodeBuilderError::RuntimeError {
+                    msg: format!("get_descriptor function not found on builder table: {e}"),
+                })?;
+
+        let descriptor_ref: mlua::UserDataRef<crate::node::ComputeNodeDescriptor> = get_descriptor_fn
+            .call((builder_table.clone(),))
+            .map_err(|e| crate::node::ComputeNodeBuilderError::RuntimeError {
+                msg: format!("get_descriptor call failed: {e}"),
+            })?;
+
+        Ok(descriptor_ref.clone())
     }
 
     fn init_node(&self, node: &mut crate::node::ComputeNode) -> Result<(), crate::node::ComputeNodeError> {
@@ -204,10 +225,7 @@ impl Interpreter {
             .map_err(|e| InterpreterError::RuntimeError { msg: e.to_string() })
     }
 
-    pub fn load_compute_node_builder(
-        &self,
-        script_content: &str,
-    ) -> Result<(crate::node::ComputeNodeDescriptor, mlua::RegistryKey), InterpreterError> {
+    pub fn load_compute_node_builder(&self, script_content: &str) -> Result<mlua::RegistryKey, InterpreterError> {
         let builder_table: mlua::Table = self
             .lua
             .load(script_content)
@@ -215,26 +233,8 @@ impl Interpreter {
             .eval()
             .map_err(|e| InterpreterError::RuntimeError { msg: e.to_string() })?;
 
-        let new_descriptor_fn: mlua::Function =
-            builder_table
-                .get("new_descriptor")
-                .map_err(|e| InterpreterError::RuntimeError {
-                    msg: format!("new_descriptor function not found: {e:?}"),
-                })?;
-
-        let descriptor_ref: mlua::UserDataRef<crate::node::ComputeNodeDescriptor> = new_descriptor_fn
-            .call((builder_table.clone(),))
-            .map_err(|e: mlua::Error| InterpreterError::RuntimeError {
-                msg: format!("Error calling new_descriptor: {e:?}"),
-            })?;
-
-        let descriptor = descriptor_ref.clone();
-
-        let builder_table_key = self
-            .lua
+        self.lua
             .create_registry_value(builder_table)
-            .map_err(|e| InterpreterError::RuntimeError { msg: e.to_string() })?;
-
-        Ok((descriptor, builder_table_key))
+            .map_err(|e| InterpreterError::RuntimeError { msg: e.to_string() })
     }
 }

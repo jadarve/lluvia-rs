@@ -338,7 +338,7 @@ impl Session {
         let script_content = std::str::from_utf8(&luau_bytes)
             .map_err(|e| SessionError::RuntimeError(format!("Invalid Luau script content: {e:?}")))?;
 
-        let (descriptor, builder_table_key) = {
+        let builder_table_key = {
             let interpreter = self.interpreter.lock().unwrap();
             interpreter
                 .load_compute_node_builder(script_content)
@@ -347,7 +347,6 @@ impl Session {
 
         let builder = crate::interpreter::LuauComputeNodeBuilder {
             interpreter: self.interpreter.clone(),
-            descriptor,
             builder_table_key,
         };
 
