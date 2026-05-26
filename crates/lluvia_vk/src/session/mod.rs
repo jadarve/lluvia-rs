@@ -31,6 +31,9 @@ pub enum SessionError {
 
     #[error("Vulkan future error: {0}")]
     FutureError(String),
+
+    #[error("Builder not found: {0}")]
+    BuilderNotFound(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -318,37 +321,27 @@ impl Session {
     pub fn load_compute_node_builder(
         self: &Arc<Self>,
         name: &str,
-    ) -> Result<Option<Box<dyn crate::node::ComputeNodeBuilder>>, SessionError> {
+    ) -> Result<Box<dyn crate::node::ComputeNodeBuilder>, SessionError> {
         let name_parts: Vec<&str> = name.split('/').collect();
         let last_part = name_parts
             .last()
             .ok_or_else(|| SessionError::RuntimeError(format!("Invalid compute node builder name: {name}")))?;
 
         let luau_path = format!("{name}/{last_part}.luau");
-        let spv_path = format!("{name}/{last_part}.spv");
 
-        let luau_file = match crate::node_repository::NODES_DIR.get_file(&luau_path) {
-            Some(file) => file,
-            None => return Ok(None),
-        };
+        let luau_bytes = self
+            .repositories
+            .iter()
+            .find_map(|repo| repo.load(&luau_path).ok())
+            .ok_or_else(|| SessionError::BuilderNotFound(name.to_string()))?;
 
-        let spv_file = match crate::node_repository::NODES_DIR.get_file(&spv_path) {
-            Some(file) => file,
-            None => return Ok(None),
-        };
-
-        let spv_bytes = spv_file.contents().to_vec();
-        let program = self
-            .create_program(spv_bytes)
-            .map_err(|e| SessionError::RuntimeError(format!("Failed to create program from SPIR-V: {e:?}")))?;
-
-        let script_content = std::str::from_utf8(luau_file.contents())
+        let script_content = std::str::from_utf8(&luau_bytes)
             .map_err(|e| SessionError::RuntimeError(format!("Invalid Luau script content: {e:?}")))?;
 
         let (descriptor, builder_table_key) = {
             let interpreter = self.interpreter.lock().unwrap();
             interpreter
-                .load_compute_node_builder(script_content, program)
+                .load_compute_node_builder(script_content)
                 .map_err(|e| SessionError::RuntimeError(format!("Interpreter failed to load builder: {e:?}")))?
         };
 
@@ -358,7 +351,7 @@ impl Session {
             builder_table_key,
         };
 
-        Ok(Some(Box::new(builder)))
+        Ok(Box::new(builder))
     }
 }
 

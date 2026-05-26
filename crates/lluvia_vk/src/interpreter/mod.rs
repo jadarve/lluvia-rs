@@ -207,7 +207,6 @@ impl Interpreter {
     pub fn load_compute_node_builder(
         &self,
         script_content: &str,
-        program: crate::program::Program,
     ) -> Result<(crate::node::ComputeNodeDescriptor, mlua::RegistryKey), InterpreterError> {
         let builder_table: mlua::Table = self
             .lua
@@ -229,8 +228,7 @@ impl Interpreter {
                 msg: format!("Error calling new_descriptor: {e:?}"),
             })?;
 
-        let mut descriptor = descriptor_ref.clone();
-        descriptor = descriptor.program(program);
+        let descriptor = descriptor_ref.clone();
 
         let builder_table_key = self
             .lua

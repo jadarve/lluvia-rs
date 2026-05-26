@@ -124,9 +124,7 @@ mod tests {
 
         let session = ll::Session::new(session_descriptor)?;
 
-        let builder = session
-            .load_compute_node_builder("lluvia/assign")?
-            .ok_or_else(|| anyhow::anyhow!("builder not found"))?;
+        let builder = session.load_compute_node_builder("lluvia/assign")?;
 
         let node_descriptor = builder.get_descriptor();
         let mut compute_node = session.create_compute_node(node_descriptor)?;
