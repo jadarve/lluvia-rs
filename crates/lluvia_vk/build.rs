@@ -22,6 +22,9 @@ fn compile_shaders(dir: &Path) {
         return;
     }
 
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
+    let include_dir = Path::new(&manifest_dir).join("resources/glsl");
+
     for entry in fs::read_dir(dir).unwrap() {
         let entry = entry.unwrap();
         let path = entry.path();
@@ -33,6 +36,8 @@ fn compile_shaders(dir: &Path) {
             spv_path.set_extension("spv");
 
             let status = Command::new("glslc")
+                .arg("-I")
+                .arg(&include_dir)
                 .arg(&path)
                 .arg("-o")
                 .arg(&spv_path)

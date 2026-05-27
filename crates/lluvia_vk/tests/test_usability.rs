@@ -176,4 +176,92 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_rgba2gray() -> Result<()> {
+        use std::sync::Arc;
+        let session = ll::Session::new(ll::SessionDescriptor::default())?;
+
+        // Load the RGBA2Gray node builder from Luau
+        let builder = session.load_compute_node_builder("lluvia/color/RGBA2Gray")?;
+        let node_descriptor = builder.get_descriptor()?;
+        let mut compute_node = session.create_compute_node(node_descriptor)?;
+
+        // Load reference input image using image crate
+        let input_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/test-data/koala.jpg");
+        let img = image::open(&input_path)?;
+        let rgba_img = img.to_rgba8();
+        let (width, height) = rgba_img.dimensions();
+
+        // Create staging buffers and GPU images
+        let img_in_size = (width * height * 4) as u64;
+        let staging_in = session.create_buffer_host_visible(img_in_size)?;
+        staging_in.write(rgba_img.as_raw());
+
+        let img_in_desc = ll::image::ImageDescriptor::default()
+            .width(width)
+            .height(height)
+            .channel_count(ll::image::ChannelCount::C4)
+            .channel_type(ll::image::ChannelType::Uint8)
+            .usage(
+                vulkano::image::ImageUsage::STORAGE
+                    | vulkano::image::ImageUsage::TRANSFER_DST
+                    | vulkano::image::ImageUsage::TRANSFER_SRC,
+            );
+        let img_in = Arc::new(ll::image::Image::new(session.allocator(), img_in_desc)?);
+        let view_desc = ll::image::ImageViewDescriptor::default();
+        let view_in = Arc::new(img_in.create_image_view(&view_desc)?);
+
+        let img_out_desc = ll::image::ImageDescriptor::default()
+            .width(width)
+            .height(height)
+            .channel_count(ll::image::ChannelCount::C1)
+            .channel_type(ll::image::ChannelType::Uint8)
+            .usage(
+                vulkano::image::ImageUsage::STORAGE
+                    | vulkano::image::ImageUsage::TRANSFER_DST
+                    | vulkano::image::ImageUsage::TRANSFER_SRC,
+            );
+        let img_out = Arc::new(ll::image::Image::new(session.allocator(), img_out_desc)?);
+        let view_out = Arc::new(img_out.create_image_view(&view_desc)?);
+
+        // Bind the image views
+        use ll::node::Node;
+        compute_node.bind("in_rgba", ll::node::NodePort::ImageView(view_in))?;
+        compute_node.bind("out_gray", ll::node::NodePort::ImageView(view_out))?;
+
+        // Initialize node (calls the Luau builder's on_node_init)
+        builder.init_node(&mut compute_node)?;
+
+        // Set the grid shape based on image dimensions and workgroup local shape (32, 32, 1)
+        let grid_x = width.div_ceil(32);
+        let grid_y = height.div_ceil(32);
+        compute_node.set_grid_shape(&lluvia_vk::math::UVec3::new(grid_x, grid_y, 1));
+
+        // Create staging buffer for the output single-channel image
+        let img_out_size = (width * height) as u64;
+        let staging_out = session.create_buffer_host_visible(img_out_size)?;
+
+        // Build command buffer: copy input data to GPU image, run compute node, copy output image back to staging buffer
+        let mut builder_cb = session.create_command_buffer_builder()?;
+        builder_cb.copy_buffer_to_image(staging_in, img_in)?;
+        builder_cb.record_compute_node(&compute_node)?;
+        builder_cb.copy_image_to_buffer(img_out, staging_out.clone())?;
+
+        let command_buffer = builder_cb.build_command_buffer()?;
+        session.run(command_buffer)?;
+
+        // Save output image using the image crate
+        let out_data = staging_out.read();
+        let gray_image = image::GrayImage::from_raw(width, height, out_data)
+            .ok_or_else(|| anyhow::anyhow!("Failed to construct output GrayImage"))?;
+
+        let output_path =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/test-data/output_koala_gray.jpg");
+        gray_image.save(&output_path)?;
+
+        assert!(output_path.exists());
+
+        Ok(())
+    }
 }

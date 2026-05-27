@@ -48,6 +48,34 @@ impl CommandBufferBuilder {
         Ok(())
     }
 
+    pub fn copy_buffer_to_image(
+        &mut self,
+        src: Arc<Buffer>,
+        dst: Arc<crate::image::Image>,
+    ) -> Result<(), CommandBufferError> {
+        self.builder
+            .copy_buffer_to_image(vulkano::command_buffer::CopyBufferToImageInfo::buffer_image(
+                src.inner().clone(),
+                dst.inner().clone(),
+            ))
+            .map_err(|e| CommandBufferError::RuntimeError(e.to_string()))?;
+        Ok(())
+    }
+
+    pub fn copy_image_to_buffer(
+        &mut self,
+        src: Arc<crate::image::Image>,
+        dst: Arc<Buffer>,
+    ) -> Result<(), CommandBufferError> {
+        self.builder
+            .copy_image_to_buffer(vulkano::command_buffer::CopyImageToBufferInfo::image_buffer(
+                src.inner().clone(),
+                dst.inner().clone(),
+            ))
+            .map_err(|e| CommandBufferError::RuntimeError(e.to_string()))?;
+        Ok(())
+    }
+
     pub fn record_compute_node(&mut self, node: &ComputeNode) -> Result<(), CommandBufferError> {
         node.record(&mut self.builder)?;
         Ok(())
