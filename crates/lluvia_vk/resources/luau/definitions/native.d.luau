@@ -6,7 +6,7 @@ declare class Vec3
     z: number
 end
 
-declare function Vec3(): Vec3
+declare function Vec3(x: number, y: number, z: number): Vec3
 
 -----------------------------------------------------------
 declare class UVec3
@@ -15,7 +15,7 @@ declare class UVec3
     z: number
 end
 
-declare function UVec3(): UVec3
+declare function UVec3(x: number, y: number, z: number): UVec3
 
 -----------------------------------------------------------
 
@@ -26,7 +26,7 @@ declare class PortDescriptor
     port_type: number
 end
 
-declare function PortDescriptor(binding: number, name: string, direction: number, port_type: number)
+declare function PortDescriptor(binding: number, name: string, direction: number, port_type: number): PortDescriptor
 
 -----------------------------------------------------------
 declare class Program

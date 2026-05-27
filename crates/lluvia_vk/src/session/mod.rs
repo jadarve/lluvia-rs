@@ -79,6 +79,8 @@ pub struct Session {
     allocator: Arc<StandardMemoryAllocator>,
     descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
+
+    // TOTHINK: consider adding internal mutability to interpreter to contain Mutex<Lua>
     interpreter: Arc<std::sync::Mutex<crate::interpreter::Interpreter>>,
 
     repositories: Vec<Arc<Box<dyn Repository>>>,
@@ -185,14 +187,6 @@ impl Session {
         Ok(session)
     }
 
-    // pub(crate) fn instance(&self) -> Arc<Instance> {
-    //     self.instance.clone()
-    // }
-
-    // pub(crate) fn device(&self) -> Arc<Device> {
-    //     self.device.clone()
-    // }
-
     pub fn compute_queue(&self) -> Arc<Queue> {
         self.compute_queue.clone()
     }
@@ -201,23 +195,6 @@ impl Session {
     pub fn allocator(&self) -> Arc<StandardMemoryAllocator> {
         self.allocator.clone()
     }
-
-    // pub(crate) fn descriptor_set_allocator(&self) -> Arc<StandardDescriptorSetAllocator> {
-    //     self.descriptor_set_allocator.clone()
-    // }
-
-    // pub(crate) fn command_buffer_allocator(&self) -> Arc<StandardCommandBufferAllocator> {
-    //     self.command_buffer_allocator.clone()
-    // }
-
-    // pub fn create_buffer(
-    //     &self,
-    //     size: u64,
-    //     usage: BufferUsage,
-    //     memory_type_filter: MemoryTypeFilter,
-    // ) -> Result<Arc<Buffer>, BufferError> {
-    //     Buffer::new(self.allocator.clone(), size, usage, memory_type_filter).map(Arc::new)
-    // }
 
     pub fn create_buffer_device_local(&self, size: u64) -> Result<Arc<Buffer>, BufferError> {
         Buffer::new_device_local(self.allocator.clone(), size).map(Arc::new)

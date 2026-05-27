@@ -23,12 +23,6 @@ module.PortDescriptor = {
 	end,
 }
 
-module.vec3ui = {
-	new = function(x: number, y: number, z: number)
-		return module.UVec3(x, y, z)
-	end,
-}
-
 function module.load_program(path: string): Program
 	return load_program(path)
 end
@@ -64,33 +58,6 @@ end
 -----------------------------------------------------------
 function module.ComputeNodeDescriptor(): ComputeNodeDescriptor
 	return ComputeNodeDescriptor()
-end
-
------------------------------------------------------------
--- Math
------------------------------------------------------------
--- function module.Vec3()
--- 	return Vec3()
--- end
-
--- function module.UVec3()
--- 	return UVec3()
--- end
-
-function module.Vec3(x: number, y: number, z: number)
-	local v = Vec3()
-	v.x = x
-	v.y = y
-	v.z = z
-	return v
-end
-
-function module.UVec3(x: number, y: number, z: number)
-	local v = UVec3()
-	v.x = x
-	v.y = y
-	v.z = z
-	return v
 end
 
 return module
