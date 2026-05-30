@@ -179,7 +179,6 @@ mod tests {
 
     #[test]
     fn test_rgba2gray() -> Result<()> {
-        use std::sync::Arc;
         let session = ll::Session::new(ll::SessionDescriptor::default())?;
 
         // Load the RGBA2Gray node builder from Luau
@@ -208,9 +207,11 @@ mod tests {
                     | vulkano::image::ImageUsage::TRANSFER_DST
                     | vulkano::image::ImageUsage::TRANSFER_SRC,
             );
-        let img_in = Arc::new(ll::image::Image::new(session.allocator(), img_in_desc)?);
+
+        let img_in = session.create_image(img_in_desc)?;
+
         let view_desc = ll::image::ImageViewDescriptor::default();
-        let view_in = Arc::new(img_in.create_image_view(&view_desc)?);
+        let view_in = img_in.create_image_view(&view_desc)?;
 
         let img_out_desc = ll::image::ImageDescriptor::default()
             .width(width)
@@ -222,8 +223,8 @@ mod tests {
                     | vulkano::image::ImageUsage::TRANSFER_DST
                     | vulkano::image::ImageUsage::TRANSFER_SRC,
             );
-        let img_out = Arc::new(ll::image::Image::new(session.allocator(), img_out_desc)?);
-        let view_out = Arc::new(img_out.create_image_view(&view_desc)?);
+        let img_out = session.create_image(img_out_desc)?;
+        let view_out = img_out.create_image_view(&view_desc)?;
 
         // Bind the image views
         use ll::node::Node;

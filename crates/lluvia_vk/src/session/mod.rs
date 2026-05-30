@@ -191,9 +191,11 @@ impl Session {
         self.compute_queue.clone()
     }
 
-    // TODO: do not expose this once image creation is encapsulated.
-    pub fn allocator(&self) -> Arc<StandardMemoryAllocator> {
-        self.allocator.clone()
+    pub fn create_image(
+        &self,
+        descriptor: crate::image::ImageDescriptor,
+    ) -> Result<Arc<crate::image::Image>, crate::image::ImageError> {
+        crate::image::Image::new(self.allocator.clone(), descriptor).map(Arc::new)
     }
 
     pub fn create_buffer_device_local(&self, size: u64) -> Result<Arc<Buffer>, BufferError> {

@@ -277,8 +277,11 @@ impl Image {
     }
 
     /// Creates an [`ImageView`] from this image using the given view descriptor.
-    pub fn create_image_view(self: &Arc<Self>, view_descriptor: &ImageViewDescriptor) -> Result<ImageView, ImageError> {
-        ImageView::new(self.clone(), view_descriptor)
+    pub fn create_image_view(
+        self: &Arc<Self>,
+        view_descriptor: &ImageViewDescriptor,
+    ) -> Result<Arc<ImageView>, ImageError> {
+        ImageView::new(self.clone(), view_descriptor).map(Arc::new)
     }
 }
 
@@ -456,7 +459,7 @@ mod test {
             .channel_type(ChannelType::Float32)
             .channel_count(ChannelCount::C4);
 
-        let image = Image::new(session.allocator(), desc)?;
+        let image = session.create_image(desc)?;
         assert_eq!(image.descriptor().width, 64);
         assert_eq!(image.descriptor().height, 64);
         Ok(())
@@ -471,7 +474,7 @@ mod test {
             .channel_type(ChannelType::Uint8)
             .channel_count(ChannelCount::C4);
 
-        let image = Arc::new(Image::new(session.allocator(), desc)?);
+        let image = session.create_image(desc)?;
         let view_desc = ImageViewDescriptor::default();
         let _view = image.create_image_view(&view_desc)?;
         Ok(())

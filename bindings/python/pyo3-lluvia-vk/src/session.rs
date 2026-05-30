@@ -72,9 +72,10 @@ impl PySession {
     }
 
     pub fn create_image(&self, descriptor: &PyImageDescriptor) -> PyResult<PyImage> {
-        use lluvia_vk::image::Image;
-        let inner = Image::new(self.inner.allocator(), descriptor.inner.clone())
+        let inner = self
+            .inner
+            .create_image(descriptor.inner.clone())
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-        Ok(PyImage { inner: Arc::new(inner) })
+        Ok(PyImage { inner })
     }
 }

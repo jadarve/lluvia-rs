@@ -114,7 +114,7 @@ impl PyImage {
             .inner
             .create_image_view(&view_descriptor.inner)
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-        Ok(PyImageView { inner: Arc::new(inner) })
+        Ok(PyImageView { inner })
     }
 }
 
