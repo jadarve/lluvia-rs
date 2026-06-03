@@ -25,10 +25,14 @@ mod tests {
                 float outputBuffer[];
             };
 
+            layout(push_constant) uniform PushConsts {
+                float offset;
+            } pushConsts;
+
             void main() {
 
                 const uint index = gl_GlobalInvocationID.x;
-                outputBuffer[index] = index;
+                outputBuffer[index] = index + pushConsts.offset;
             }
 
             #endif // ASSIGN_COMP_
@@ -94,6 +98,11 @@ mod tests {
         use ll::node::Node;
         node.bind("out0", ll::node::NodePort::Buffer(device_buffer.clone()))?;
 
+        // Set push constants with 11.0 offset to match assertions
+        let mut push_constants = ll::node::PushConstants::default();
+        push_constants.push_f32(11.0);
+        node.push_constants = Some(push_constants);
+
         let mut builder = session.create_command_buffer_builder()?;
 
         builder.record_compute_node(&node)?;
@@ -106,13 +115,13 @@ mod tests {
         session.run(command_buffer)?;
 
         // Verify that the buffer was written to
-        // The shader writes `outputBuffer[index] = index`
+        // The shader writes `outputBuffer[index] = index + offset`
         let data = staging_buffer.read();
         let floats: &[f32] = bytemuck::cast_slice(&data);
         println!("{floats:?}");
 
         for (i, item) in floats.iter().enumerate() {
-            assert_eq!(*item, i as f32);
+            assert_eq!(*item, i as f32 + 11.0);
         }
 
         Ok(())
@@ -135,6 +144,9 @@ mod tests {
         use ll::node::Node;
         compute_node.bind("out_buffer", ll::node::NodePort::Buffer(device_buffer.clone()))?;
 
+        // Set the offset constant to 10.0
+        compute_node.set_constant("offset", ll::node::Constant::Float(10.0));
+
         // this is different to Lluvia Cpp. There, the compute_node instance holds the reference to the builder
         // so that when the node is initialized, the builder is called.
         // Here the builder and the compute_node are independent.
@@ -151,7 +163,7 @@ mod tests {
         let floats: &[f32] = bytemuck::cast_slice(&data);
 
         for (i, item) in floats.iter().enumerate() {
-            assert_eq!(*item, i as f32);
+            assert_eq!(*item, i as f32 + 10.0);
         }
 
         Ok(())

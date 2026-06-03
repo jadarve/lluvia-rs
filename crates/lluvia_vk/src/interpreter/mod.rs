@@ -36,6 +36,12 @@ fn register_native_types(globals: &mlua::Table) -> Result<(), InterpreterError> 
             msg: format!("Error registering UVec3: {e:?}"),
         })?;
 
+    globals
+        .set("PushConstants", crate::node::PushConstants::default())
+        .map_err(|e| InterpreterError::RuntimeError {
+            msg: format!("Error registering PushConstants: {e:?}"),
+        })?;
+
     Ok(())
 }
 
@@ -225,13 +231,60 @@ impl Interpreter {
             .map_err(|e| InterpreterError::RuntimeError { msg: e.to_string() })
     }
 
-    pub fn load_compute_node_builder(&self, script_content: &str) -> Result<mlua::RegistryKey, InterpreterError> {
-        let builder_table: mlua::Table = self
-            .lua
+    pub fn load_compute_node_builder(
+        &self,
+        script_content: &str,
+        name: &str,
+    ) -> Result<mlua::RegistryKey, InterpreterError> {
+        self.lua
             .load(script_content)
             .set_name("builder")
-            .eval()
+            .exec()
             .map_err(|e| InterpreterError::RuntimeError { msg: e.to_string() })?;
+
+        let ll: mlua::Table =
+            self.lua
+                .load("return require('@lib/ll.luau')")
+                .eval()
+                .map_err(|e| InterpreterError::RuntimeError {
+                    msg: format!("Failed to require @lib/ll.luau: {e}"),
+                })?;
+        let compute_node_builders: mlua::Table =
+            ll.get("compute_node_builders")
+                .map_err(|e| InterpreterError::RuntimeError {
+                    msg: format!("Failed to get compute_node_builders table: {e}"),
+                })?;
+
+        let mut builder_val: mlua::Value =
+            compute_node_builders
+                .get(name)
+                .map_err(|e| InterpreterError::RuntimeError {
+                    msg: format!("Failed to look up builder {name}: {e}"),
+                })?;
+
+        if builder_val.is_nil() {
+            let last_part = name.split('/').next_back().unwrap_or(name);
+            builder_val = compute_node_builders
+                .get(last_part)
+                .map_err(|e| InterpreterError::RuntimeError {
+                    msg: format!("Failed to look up builder {last_part}: {e}"),
+                })?;
+        }
+
+        if builder_val.is_nil() {
+            return Err(InterpreterError::RuntimeError {
+                msg: format!("Builder not found in compute_node_builders for name: {name}"),
+            });
+        }
+
+        let builder_table = match builder_val {
+            mlua::Value::Table(t) => t,
+            _ => {
+                return Err(InterpreterError::RuntimeError {
+                    msg: "Builder is not a table".to_string(),
+                });
+            }
+        };
 
         self.lua
             .create_registry_value(builder_table)

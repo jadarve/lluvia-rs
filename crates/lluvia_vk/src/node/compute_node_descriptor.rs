@@ -1,9 +1,12 @@
 //! Descriptor used to build a [`ComputeNode`](super::ComputeNode).
 
+use std::collections::HashMap;
+
 use crate::math;
 use crate::program::Program;
 
 use super::ComputeNodeError;
+use super::constant::Constant;
 use super::port_descriptor::PortDescriptor;
 
 // ---------------------------------------------------------------------------
@@ -22,8 +25,7 @@ pub struct ComputeNodeDescriptor {
     pub local_shape: math::UVec3,
     pub grid_shape: math::UVec3,
     pub ports: Vec<PortDescriptor>,
-    // parameters: HashMap<String, f64>,
-    // push_constants: PushConstants,
+    pub constants: HashMap<String, Constant>,
 }
 
 impl Default for ComputeNodeDescriptor {
@@ -34,8 +36,7 @@ impl Default for ComputeNodeDescriptor {
             local_shape: math::UVec3::ONE,
             grid_shape: math::UVec3::ONE,
             ports: Vec::new(),
-            // parameters: HashMap::new(),
-            // push_constants: PushConstants::default(),
+            constants: HashMap::new(),
         }
     }
 }
@@ -77,6 +78,18 @@ impl ComputeNodeDescriptor {
     pub fn add_port(mut self, port: PortDescriptor) -> Self {
         self.ports.push(port);
         self
+    }
+
+    /// Sets a constant.
+    pub fn set_constant(&mut self, name: impl Into<String>, value: Constant) {
+        self.constants.insert(name.into(), value);
+    }
+
+    /// Gets a constant reference by name.
+    pub fn get_constant(&self, name: &str) -> Result<&Constant, ComputeNodeError> {
+        self.constants
+            .get(name)
+            .ok_or_else(|| ComputeNodeError::ConstantNotFound(name.to_string()))
     }
 
     /// Returns the program, if set.

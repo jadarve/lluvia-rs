@@ -1,4 +1,5 @@
 use crate::node::{ComputeNodeDescriptor, PortDescriptor};
+use mlua::FromLua;
 
 impl mlua::UserData for ComputeNodeDescriptor {
     fn add_fields<F: mlua::prelude::LuaUserDataFields<Self>>(fields: &mut F) {
@@ -35,14 +36,22 @@ impl mlua::UserData for ComputeNodeDescriptor {
             Ok(ComputeNodeDescriptor::default())
         });
 
-        methods.add_method_mut("addPort", |_, this, port: mlua::UserDataRef<PortDescriptor>| {
+        methods.add_method_mut("add_port", |_, this, port: mlua::UserDataRef<PortDescriptor>| {
             *this = this.clone().add_port(port.clone());
             Ok(())
         });
 
-        methods.add_method_mut("add_port", |_, this, port: mlua::UserDataRef<PortDescriptor>| {
-            *this = this.clone().add_port(port.clone());
+        methods.add_method_mut("set_constant", |lua, this, (name, value): (String, mlua::Value)| {
+            let constant = crate::node::Constant::from_lua(value, lua)?;
+            this.set_constant(name, constant);
             Ok(())
+        });
+
+        methods.add_method("get_constant", |_, this, name: String| {
+            let constant = this
+                .get_constant(&name)
+                .map_err(|e| mlua::Error::RuntimeError(e.to_string()))?;
+            Ok(constant.clone())
         });
     }
 }

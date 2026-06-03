@@ -18,9 +18,9 @@ use vulkano::shader::SpecializedShaderModule;
 use crate::math;
 
 use super::compute_node_descriptor::ComputeNodeDescriptor;
-use super::node_port::NodePort;
+use super::node_port::{NodePort, PushConstants};
 use super::node_type::NodeType;
-use super::{ComputeNodeError, Node};
+use super::{ComputeNodeError, Constant, Node};
 
 // ---------------------------------------------------------------------------
 // ComputeNode
@@ -35,6 +35,7 @@ pub struct ComputeNode {
     objects: HashMap<String, NodePort>,
     descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
     descriptor_set: Option<Arc<DescriptorSet>>,
+    pub push_constants: Option<PushConstants>,
 }
 
 impl ComputeNode {
@@ -95,12 +96,23 @@ impl ComputeNode {
             objects: HashMap::new(),
             descriptor_set_allocator,
             descriptor_set: None,
+            push_constants: None,
         })
     }
 
     /// Returns the node descriptor.
     pub fn descriptor(&self) -> &ComputeNodeDescriptor {
         &self.descriptor
+    }
+
+    /// Sets a constant on the descriptor.
+    pub fn set_constant(&mut self, name: impl Into<String>, value: Constant) {
+        self.descriptor.set_constant(name, value);
+    }
+
+    /// Gets a constant reference by name.
+    pub fn get_constant(&self, name: &str) -> Result<&Constant, ComputeNodeError> {
+        self.descriptor.get_constant(name)
     }
 
     /// Returns the grid shape `[x, y, z]`.
@@ -194,6 +206,134 @@ impl Node for ComputeNode {
                     vec![set.clone()],
                 )
                 .map_err(|e| ComputeNodeError::DispatchFailed(e.to_string()))?;
+        }
+
+        // FIXME: need to figure out a better way.
+        if let Some(push_constants) = &self.push_constants {
+            let size = push_constants.size();
+            if size > 0 {
+                let layout = self.pipeline.layout().clone();
+                match size {
+                    4 => {
+                        let mut data = [0u8; 4];
+                        data.copy_from_slice(&push_constants.data()[..4]);
+                        builder
+                            .push_constants(layout.clone(), 0, data)
+                            .map_err(|e| ComputeNodeError::DispatchFailed(e.to_string()))?;
+                    }
+                    8 => {
+                        let mut data = [0u8; 8];
+                        data.copy_from_slice(&push_constants.data()[..8]);
+                        builder
+                            .push_constants(layout, 0, data)
+                            .map_err(|e| ComputeNodeError::DispatchFailed(e.to_string()))?;
+                    }
+                    12 => {
+                        let mut data = [0u8; 12];
+                        data.copy_from_slice(&push_constants.data()[..12]);
+                        builder
+                            .push_constants(layout, 0, data)
+                            .map_err(|e| ComputeNodeError::DispatchFailed(e.to_string()))?;
+                    }
+                    16 => {
+                        let mut data = [0u8; 16];
+                        data.copy_from_slice(&push_constants.data()[..16]);
+                        builder
+                            .push_constants(layout, 0, data)
+                            .map_err(|e| ComputeNodeError::DispatchFailed(e.to_string()))?;
+                    }
+                    20 => {
+                        let mut data = [0u8; 20];
+                        data.copy_from_slice(&push_constants.data()[..20]);
+                        builder
+                            .push_constants(layout, 0, data)
+                            .map_err(|e| ComputeNodeError::DispatchFailed(e.to_string()))?;
+                    }
+                    24 => {
+                        let mut data = [0u8; 24];
+                        data.copy_from_slice(&push_constants.data()[..24]);
+                        builder
+                            .push_constants(layout, 0, data)
+                            .map_err(|e| ComputeNodeError::DispatchFailed(e.to_string()))?;
+                    }
+                    28 => {
+                        let mut data = [0u8; 28];
+                        data.copy_from_slice(&push_constants.data()[..28]);
+                        builder
+                            .push_constants(layout, 0, data)
+                            .map_err(|e| ComputeNodeError::DispatchFailed(e.to_string()))?;
+                    }
+                    32 => {
+                        let mut data = [0u8; 32];
+                        data.copy_from_slice(&push_constants.data()[..32]);
+                        builder
+                            .push_constants(layout, 0, data)
+                            .map_err(|e| ComputeNodeError::DispatchFailed(e.to_string()))?;
+                    }
+                    36 => {
+                        let mut data = [0u8; 36];
+                        data.copy_from_slice(&push_constants.data()[..36]);
+                        builder
+                            .push_constants(layout, 0, data)
+                            .map_err(|e| ComputeNodeError::DispatchFailed(e.to_string()))?;
+                    }
+                    40 => {
+                        let mut data = [0u8; 40];
+                        data.copy_from_slice(&push_constants.data()[..40]);
+                        builder
+                            .push_constants(layout, 0, data)
+                            .map_err(|e| ComputeNodeError::DispatchFailed(e.to_string()))?;
+                    }
+                    44 => {
+                        let mut data = [0u8; 44];
+                        data.copy_from_slice(&push_constants.data()[..44]);
+                        builder
+                            .push_constants(layout, 0, data)
+                            .map_err(|e| ComputeNodeError::DispatchFailed(e.to_string()))?;
+                    }
+                    48 => {
+                        let mut data = [0u8; 48];
+                        data.copy_from_slice(&push_constants.data()[..48]);
+                        builder
+                            .push_constants(layout, 0, data)
+                            .map_err(|e| ComputeNodeError::DispatchFailed(e.to_string()))?;
+                    }
+                    52 => {
+                        let mut data = [0u8; 52];
+                        data.copy_from_slice(&push_constants.data()[..52]);
+                        builder
+                            .push_constants(layout, 0, data)
+                            .map_err(|e| ComputeNodeError::DispatchFailed(e.to_string()))?;
+                    }
+                    56 => {
+                        let mut data = [0u8; 56];
+                        data.copy_from_slice(&push_constants.data()[..56]);
+                        builder
+                            .push_constants(layout, 0, data)
+                            .map_err(|e| ComputeNodeError::DispatchFailed(e.to_string()))?;
+                    }
+                    60 => {
+                        let mut data = [0u8; 60];
+                        data.copy_from_slice(&push_constants.data()[..60]);
+                        builder
+                            .push_constants(layout, 0, data)
+                            .map_err(|e| ComputeNodeError::DispatchFailed(e.to_string()))?;
+                    }
+                    64 => {
+                        let mut data = [0u8; 64];
+                        data.copy_from_slice(&push_constants.data()[..64]);
+                        builder
+                            .push_constants(layout, 0, data)
+                            .map_err(|e| ComputeNodeError::DispatchFailed(e.to_string()))?;
+                    }
+                    _ => {
+                        return Err(ComputeNodeError::DispatchFailed(format!(
+                            "Unsupported push constants size: {}",
+                            size
+                        )));
+                    }
+                }
+            }
         }
 
         unsafe {

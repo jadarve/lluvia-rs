@@ -35,24 +35,43 @@ end
 declare function load_program(path: string): Program
 
 -----------------------------------------------------------
+declare class Constant
+	function set(self, value: any): nil
+	function get(self): any
+end
+
+declare function Constant(): Constant
+
+-----------------------------------------------------------
+declare class PushConstants
+	function push_f32(self, value: number): nil
+	function push_i32(self, value: number): nil
+end
+
+declare function PushConstants(): PushConstants
+
+-----------------------------------------------------------
 declare class ComputeNodeDescriptor
     function_name: string
     local_shape: UVec3
     grid_shape: UVec3
     program: Program?
 
-    -- function configure_grid_shape(self, global_shape: UVec3)
-
     function add_port(self, desc: PortDescriptor): nil
+    function set_constant(self, name: string, value: any): nil
+    function get_constant(self, name: string): any
 end
 
 declare function ComputeNodeDescriptor(): ComputeNodeDescriptor
 
 -----------------------------------------------------------
 declare class ComputeNode
+    push_constants: PushConstants?
 
-    function getPort(self, name: string): any
-    function configureGridShape(self, shape: UVec3): nil
+    function get_port(self, name: string): any
+    function configure_grid_shape(self, shape: UVec3): nil
+    function set_constant(self, name: string, value: any): nil
+    function get_constant(self, name: string): any
 end
 
 -----------------------------------------------------------

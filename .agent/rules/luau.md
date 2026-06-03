@@ -6,7 +6,7 @@ When working on Luau code in this project, strictly adhere to the following best
 2. **Local Variables:** Always declare variables using `local`. Avoid global variables entirely to prevent scope pollution and improve performance.
 3. **Module Structure:** Structure reusable code and libraries as modules. A module should return a single table containing the exported functions and types, or a single entity if that is its sole purpose.
 4. **Naming Conventions:**
-   - Use `snake_case` for local variables, module instances, parameters, and functions (e.g., `local compute_node = ...`). This aligns with the broader Rust conventions used in the project.
+   - Use `snake_case` for local variables, module instances, parameters, functions, and method calls on native objects/wrappers (e.g., `local compute_node = ...`, `node:configure_grid_shape(...)`). This aligns with the broader Rust conventions used in the project.
    - Use `PascalCase` for type aliases, classes, and exported interfaces (e.g., `export type ComputeNodeBuilder = ...`).
    - Use `UPPER_SNAKE_CASE` for constants.
    - Prefix unused variables with an underscore (e.g., `_key`, `_`).

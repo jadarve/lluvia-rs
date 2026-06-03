@@ -31,4 +31,6 @@ local builder: ll.ComptueNodeBuidler = {
 
 ll:register_compute_node_builder(builder)
 
-return builder
+-- return an empty module so that the file can be required by other nodes
+-- for instance to import types
+return {}

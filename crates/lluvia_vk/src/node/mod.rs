@@ -9,12 +9,14 @@ use vulkano::command_buffer::PrimaryAutoCommandBuffer;
 
 mod compute_node;
 mod compute_node_descriptor;
+mod constant;
 mod node_port;
 mod node_type;
 mod port_descriptor;
 
 pub use compute_node::*;
 pub use compute_node_descriptor::*;
+pub use constant::*;
 pub use node_port::*;
 pub use node_type::*;
 pub use port_descriptor::*;
@@ -51,6 +53,9 @@ pub enum ComputeNodeError {
 
     #[error("Port not found: {0}")]
     PortNotFound(String),
+
+    #[error("Constant not found: {0}")]
+    ConstantNotFound(String),
 }
 
 // ---------------------------------------------------------------------------

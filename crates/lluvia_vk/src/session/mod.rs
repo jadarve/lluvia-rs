@@ -320,7 +320,7 @@ impl Session {
         let builder_table_key = {
             let interpreter = self.interpreter.lock().unwrap();
             interpreter
-                .load_compute_node_builder(script_content)
+                .load_compute_node_builder(script_content, name)
                 .map_err(|e| SessionError::RuntimeError(format!("Interpreter failed to load builder: {e:?}")))?
         };
 
