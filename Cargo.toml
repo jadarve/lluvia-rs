@@ -12,7 +12,7 @@ members = [
 # Dependencies
 [workspace.dependencies]
 anyhow = { version = "1.0.102" }
-bitflags = { version = "2.11.1" }
+bitflags = { version = "2.13.0" }
 bon = { version = "3.9.1" }
 image = { version = "0.25.5" }
 bytemuck = { version = "1.25.0" }
@@ -20,19 +20,19 @@ bytes = { version = "1.11.1" }
 clap = { version = "4.6.1" }
 flume = { version = "0.12.0" }
 foldhash = { version = "0.1.5" }
-glam = { version = "0.32.1" }
+glam = { version = "0.33.1" }
 include_dir = { version = "0.7.0" }
 mlua = { version = "0.11.6" }
 pollster = { version = "0.4.0" }
-pyo3 = { version = "0.21.2", features = ["extension-module", "anyhow"] }
+pyo3 = { version = "0.28.3", features = ["extension-module", "anyhow"] }
 rstest = { version = "0.26.1" }
 thiserror = { version = "2.0.18" }
-tokio = { version = "1.52.1" }
+tokio = { version = "1.52.3" }
 tokio-macros = { version = "~2.7.0" }
 vulkano = { version = "0.35.2" }
 vulkano-shaders = { version = "0.35.0" }
-wgpu = { version = "29.0.1" }
+wgpu = { version = "29.0.3" }
 
-wasm-bindgen = "0.2.120"
-wasm-bindgen-futures = "0.4.70"
-wasm-bindgen-test = "0.3.70"
+wasm-bindgen = "0.2.122"
+wasm-bindgen-futures = "0.4.72"
+wasm-bindgen-test = "0.3.72"
