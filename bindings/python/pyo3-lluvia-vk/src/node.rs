@@ -5,7 +5,7 @@ use lluvia_vk::node::{ComputeNode, ComputeNodeDescriptor, NodePort, PortDescript
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
-#[pyclass(name = "PortDirection")]
+#[pyclass(from_py_object, name = "PortDirection")]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum PyPortDirection {
     In,
@@ -21,7 +21,7 @@ impl From<PyPortDirection> for PortDirection {
     }
 }
 
-#[pyclass(name = "PortType")]
+#[pyclass(from_py_object, name = "PortType")]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum PyPortType {
     Buffer,
@@ -37,7 +37,7 @@ impl From<PyPortType> for PortType {
     }
 }
 
-#[pyclass(name = "PortDescriptor")]
+#[pyclass(from_py_object, name = "PortDescriptor")]
 #[derive(Clone)]
 pub struct PyPortDescriptor {
     pub(crate) inner: PortDescriptor,
@@ -58,7 +58,7 @@ impl PyPortDescriptor {
     }
 }
 
-#[pyclass(name = "ComputeNodeDescriptor")]
+#[pyclass(from_py_object, name = "ComputeNodeDescriptor")]
 #[derive(Clone)]
 pub struct PyComputeNodeDescriptor {
     pub(crate) inner: ComputeNodeDescriptor,

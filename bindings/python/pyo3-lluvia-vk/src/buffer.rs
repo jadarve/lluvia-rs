@@ -2,7 +2,7 @@ use lluvia_vk::buffer::Buffer;
 use pyo3::prelude::*;
 use std::sync::Arc;
 
-#[pyclass(name = "Buffer")]
+#[pyclass(from_py_object, name = "Buffer")]
 #[derive(Clone)]
 pub struct PyBuffer {
     pub(crate) inner: Arc<Buffer>,

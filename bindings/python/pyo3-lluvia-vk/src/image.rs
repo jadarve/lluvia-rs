@@ -6,7 +6,7 @@ use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use std::sync::Arc;
 
-#[pyclass(name = "ChannelType")]
+#[pyclass(from_py_object, name = "ChannelType")]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum PyChannelType {
     Uint8,
@@ -40,7 +40,7 @@ impl From<PyChannelType> for ChannelType {
     }
 }
 
-#[pyclass(name = "ChannelCount")]
+#[pyclass(from_py_object, name = "ChannelCount")]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum PyChannelCount {
     C1 = 1,
@@ -60,7 +60,7 @@ impl From<PyChannelCount> for ChannelCount {
     }
 }
 
-#[pyclass(name = "ImageDescriptor")]
+#[pyclass(from_py_object, name = "ImageDescriptor")]
 #[derive(Clone)]
 pub struct PyImageDescriptor {
     pub(crate) inner: ImageDescriptor,
@@ -96,7 +96,7 @@ impl PyImageDescriptor {
     }
 }
 
-#[pyclass(name = "Image")]
+#[pyclass(from_py_object, name = "Image")]
 #[derive(Clone)]
 pub struct PyImage {
     pub(crate) inner: Arc<Image>,
@@ -113,7 +113,7 @@ impl PyImage {
     }
 }
 
-#[pyclass(name = "ImageFilterMode")]
+#[pyclass(from_py_object, name = "ImageFilterMode")]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum PyImageFilterMode {
     Nearest,
@@ -129,7 +129,7 @@ impl From<PyImageFilterMode> for ImageFilterMode {
     }
 }
 
-#[pyclass(name = "ImageAddressMode")]
+#[pyclass(from_py_object, name = "ImageAddressMode")]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum PyImageAddressMode {
     Repeat,
@@ -151,7 +151,7 @@ impl From<PyImageAddressMode> for ImageAddressMode {
     }
 }
 
-#[pyclass(name = "ImageViewDescriptor")]
+#[pyclass(from_py_object, name = "ImageViewDescriptor")]
 #[derive(Clone)]
 pub struct PyImageViewDescriptor {
     pub(crate) inner: ImageViewDescriptor,
@@ -186,7 +186,7 @@ impl PyImageViewDescriptor {
     }
 }
 
-#[pyclass(name = "ImageView")]
+#[pyclass(from_py_object, name = "ImageView")]
 #[derive(Clone)]
 pub struct PyImageView {
     pub(crate) inner: Arc<ImageView>,
