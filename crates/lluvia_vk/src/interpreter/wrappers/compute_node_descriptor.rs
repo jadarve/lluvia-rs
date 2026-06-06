@@ -36,6 +36,8 @@ impl mlua::UserData for ComputeNodeDescriptor {
             Ok(ComputeNodeDescriptor::default())
         });
 
+        methods.add_method("builder", |_, _this, ()| Ok(LuaComputeNodeDescriptorBuilder::default()));
+
         methods.add_method_mut("add_port", |_, this, port: mlua::UserDataRef<PortDescriptor>| {
             *this = this.clone().add_port(port.clone());
             Ok(())
@@ -53,5 +55,64 @@ impl mlua::UserData for ComputeNodeDescriptor {
                 .map_err(|e| mlua::Error::RuntimeError(e.to_string()))?;
             Ok(constant.clone())
         });
+    }
+}
+
+#[derive(Clone, Default)]
+pub struct LuaComputeNodeDescriptorBuilder {
+    inner: ComputeNodeDescriptor,
+}
+
+impl mlua::UserData for LuaComputeNodeDescriptorBuilder {
+    fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {
+        methods.add_meta_function(mlua::MetaMethod::Call, |_, _self: mlua::Value| {
+            Ok(LuaComputeNodeDescriptorBuilder::default())
+        });
+
+        methods.add_method_mut("function_name", |_, this, val: String| {
+            this.inner.function_name = val;
+            Ok(this.clone())
+        });
+
+        methods.add_method_mut("local_shape", |_, this, val: mlua::UserDataRef<crate::math::UVec3>| {
+            this.inner.local_shape = *val;
+            Ok(this.clone())
+        });
+
+        methods.add_method_mut("grid_shape", |_, this, val: mlua::UserDataRef<crate::math::UVec3>| {
+            this.inner.grid_shape = *val;
+            Ok(this.clone())
+        });
+
+        methods.add_method_mut(
+            "configure_grid_shape",
+            |_, this, val: mlua::UserDataRef<crate::math::UVec3>| {
+                this.inner.grid_shape.inner.x = val.inner.x.div_ceil(this.inner.local_shape.inner.x);
+                this.inner.grid_shape.inner.y = val.inner.y.div_ceil(this.inner.local_shape.inner.y);
+                this.inner.grid_shape.inner.z = val.inner.z.div_ceil(this.inner.local_shape.inner.z);
+                Ok(this.clone())
+            },
+        );
+
+        methods.add_method_mut(
+            "program",
+            |_, this, val: Option<mlua::UserDataRef<crate::program::Program>>| {
+                this.inner.program = val.map(|p| p.clone());
+                Ok(this.clone())
+            },
+        );
+
+        methods.add_method_mut("add_port", |_, this, port: mlua::UserDataRef<PortDescriptor>| {
+            this.inner = this.inner.clone().add_port(port.clone());
+            Ok(this.clone())
+        });
+
+        methods.add_method_mut("add_constant", |lua, this, (name, value): (String, mlua::Value)| {
+            let constant = crate::node::Constant::from_lua(value, lua)?;
+            this.inner.set_constant(name, constant);
+            Ok(this.clone())
+        });
+
+        methods.add_method("build", |_, this, ()| Ok(this.inner.clone()));
     }
 }

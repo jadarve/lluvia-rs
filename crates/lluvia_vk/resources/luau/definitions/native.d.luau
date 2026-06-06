@@ -57,12 +57,28 @@ declare class ComputeNodeDescriptor
     grid_shape: UVec3
     program: Program?
 
+    function builder(self): ComputeNodeDescriptorBuilder
     function add_port(self, desc: PortDescriptor): nil
     function set_constant(self, name: string, value: any): nil
     function get_constant(self, name: string): any
 end
 
 declare function ComputeNodeDescriptor(): ComputeNodeDescriptor
+
+-----------------------------------------------------------
+declare class ComputeNodeDescriptorBuilder
+    function function_name(self, name: string): ComputeNodeDescriptorBuilder
+    function local_shape(self, shape: UVec3): ComputeNodeDescriptorBuilder
+    function grid_shape(self, shape: UVec3): ComputeNodeDescriptorBuilder
+    function configure_grid_shape(self, global_shape: UVec3): ComputeNodeDescriptorBuilder
+    function program(self, program: Program?): ComputeNodeDescriptorBuilder
+    function add_port(self, desc: PortDescriptor): ComputeNodeDescriptorBuilder
+    function add_constant(self, name: string, value: any): ComputeNodeDescriptorBuilder
+    function build(self): ComputeNodeDescriptor
+end
+
+declare function ComputeNodeDescriptorBuilder(): ComputeNodeDescriptorBuilder
+
 
 -----------------------------------------------------------
 declare class ComputeNode

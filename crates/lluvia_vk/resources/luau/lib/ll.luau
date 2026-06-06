@@ -60,4 +60,8 @@ function module.ComputeNodeDescriptor(): ComputeNodeDescriptor
 	return ComputeNodeDescriptor()
 end
 
+function module.ComputeNodeDescriptorBuilder(): ComputeNodeDescriptorBuilder
+	return ComputeNodeDescriptorBuilder()
+end
+
 return module

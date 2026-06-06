@@ -67,9 +67,11 @@ impl TryFrom<u32> for PortType {
 // ---------------------------------------------------------------------------
 
 /// Descriptor for a node port, mirroring C++ `ll::PortDescriptor`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, bon::Builder)]
 pub struct PortDescriptor {
     pub binding: u32,
+
+    #[builder(into)]
     pub name: String,
     pub direction: PortDirection,
     pub port_type: PortType,

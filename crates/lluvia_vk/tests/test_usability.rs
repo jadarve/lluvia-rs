@@ -170,6 +170,45 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn test_load_assign2_node() -> Result<()> {
+        let session_descriptor = ll::SessionDescriptor::default();
+
+        let session = ll::Session::new(session_descriptor)?;
+
+        let builder = session.load_compute_node_builder("lluvia/assign2")?;
+
+        let node_descriptor = builder.get_descriptor()?;
+        let mut compute_node = session.create_compute_node(node_descriptor)?;
+
+        let device_buffer = session.create_buffer_device_local(512)?;
+        let staging_buffer = session.create_buffer_host_visible(512)?;
+
+        use ll::node::Node;
+        compute_node.bind("out_buffer", ll::node::NodePort::Buffer(device_buffer.clone()))?;
+
+        // Set the offset constant to 10.0
+        compute_node.set_constant("offset", ll::node::Constant::Float(10.0));
+
+        builder.init_node(&mut compute_node)?;
+
+        let mut builder_cb = session.create_command_buffer_builder()?;
+        builder_cb.record_compute_node(&compute_node)?;
+        builder_cb.copy_buffer(device_buffer.clone(), staging_buffer.clone())?;
+
+        let command_buffer = builder_cb.build_command_buffer()?;
+        session.run(command_buffer)?;
+
+        let data = staging_buffer.read();
+        let floats: &[f32] = bytemuck::cast_slice(&data);
+
+        for (i, item) in floats.iter().enumerate() {
+            assert_eq!(*item, i as f32 + 10.0);
+        }
+
+        Ok(())
+    }
+
     struct MyScriptableNode {
         session: std::sync::Arc<ll::Session>,
         inner: Box<dyn ll::node::ComputeNodeBuilder>,

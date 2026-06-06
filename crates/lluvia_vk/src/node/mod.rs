@@ -92,18 +92,6 @@ pub trait ComputeNodeBuilder: Send {
     fn init_node(&self, node: &mut ComputeNode) -> Result<(), ComputeNodeError>;
 }
 
-pub trait ScriptableNodeBuilder: ComputeNodeBuilder {
-    // FIXME: pass arguments
-    fn init_descriptor();
-
-    /// Sets a constant. It can be called after init_descriptor() and before build() is called.
-    fn set_constant(&mut self, name: impl Into<String>, value: Constant);
-
-    fn bind(&mut self, name: &str, obj: NodePort);
-
-    fn build() -> ComputeNode;
-}
-
 pub trait ComputeNodeBuilder2: Send + Sized {
     // Build the descriptor, keep it internally
     fn build_descriptor(&mut self) -> Result<&mut Self, ComputeNodeBuilderError>;
