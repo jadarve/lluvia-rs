@@ -74,44 +74,30 @@ impl PyComputeNodeDescriptor {
     }
 
     pub fn program(&mut self, program: &PyProgram) {
-        // Need to clone inner since builder takes self, then replace
-        let inner = self.inner.clone().program(program.inner.clone());
-        self.inner = inner;
+        self.inner.program = Some(program.inner.clone());
     }
 
     pub fn function_name(&mut self, name: &str) {
-        let inner = self.inner.clone().function_name(name);
-        self.inner = inner;
+        self.inner.function_name = name.to_string();
     }
 
     pub fn local_shape(&mut self, shape: [u32; 3]) {
-        let inner = self
-            .inner
-            .clone()
-            .local_shape(&lluvia_vk::math::UVec3::new(shape[0], shape[1], shape[2]));
-        self.inner = inner;
+        self.inner.local_shape = lluvia_vk::math::UVec3::new(shape[0], shape[1], shape[2]);
     }
 
     pub fn grid_shape(&mut self, shape: [u32; 3]) {
-        let inner = self
-            .inner
-            .clone()
-            .grid_shape(&lluvia_vk::math::UVec3::new(shape[0], shape[1], shape[2]));
-        self.inner = inner;
+        self.inner.grid_shape = lluvia_vk::math::UVec3::new(shape[0], shape[1], shape[2]);
     }
 
     pub fn configure_grid_shape(&mut self, global_shape: [u32; 3]) {
-        let inner = self.inner.clone().configure_grid_shape(&lluvia_vk::math::UVec3::new(
-            global_shape[0],
-            global_shape[1],
-            global_shape[2],
-        ));
-        self.inner = inner;
+        let global = lluvia_vk::math::UVec3::new(global_shape[0], global_shape[1], global_shape[2]);
+        self.inner.grid_shape.inner.x = global.inner.x.div_ceil(self.inner.local_shape.inner.x);
+        self.inner.grid_shape.inner.y = global.inner.y.div_ceil(self.inner.local_shape.inner.y);
+        self.inner.grid_shape.inner.z = global.inner.z.div_ceil(self.inner.local_shape.inner.z);
     }
 
     pub fn add_port(&mut self, port: &PyPortDescriptor) {
-        let inner = self.inner.clone().add_port(port.inner.clone());
-        self.inner = inner;
+        self.inner.ports.push(port.inner.clone());
     }
 }
 

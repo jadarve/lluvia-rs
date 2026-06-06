@@ -68,6 +68,8 @@ pub trait Node {
     fn has_port(&self, name: &str) -> bool;
     fn port(&self, name: &str) -> Option<&NodePort>;
     fn record(&self, builder: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>) -> Result<(), ComputeNodeError>;
+
+    // FIXME: constant related methods should be declared here
 }
 
 // ---------------------------------------------------------------------------
@@ -88,4 +90,34 @@ pub trait ComputeNodeBuilder: Send {
 
     /// Initializes the compute node (e.g., configures its grid shape or other state based on bound ports).
     fn init_node(&self, node: &mut ComputeNode) -> Result<(), ComputeNodeError>;
+}
+
+pub trait ScriptableNodeBuilder: ComputeNodeBuilder {
+    // FIXME: pass arguments
+    fn init_descriptor();
+
+    /// Sets a constant. It can be called after init_descriptor() and before build() is called.
+    fn set_constant(&mut self, name: impl Into<String>, value: Constant);
+
+    fn bind(&mut self, name: &str, obj: NodePort);
+
+    fn build() -> ComputeNode;
+}
+
+pub trait ComputeNodeBuilder2: Send + Sized {
+    // Build the descriptor, keep it internally
+    fn build_descriptor(&mut self) -> Result<&mut Self, ComputeNodeBuilderError>;
+
+    /// Returns the node descriptor, if not initialized, it calls init_descriptor() first.
+    fn get_descriptor(&mut self) -> Result<ComputeNodeDescriptor, ComputeNodeBuilderError>;
+
+    /// Initializes the compute node (e.g., configures its grid shape or other state based on bound ports).
+    fn init_node(&self, node: &mut ComputeNode) -> Result<(), ComputeNodeError>;
+
+    /// Sets a constant. It can be called after init_descriptor() and before build() is called.
+    fn set_constant(&mut self, name: impl Into<String>, value: Constant) -> Result<&mut Self, ComputeNodeBuilderError>;
+
+    fn bind(&mut self, name: &str, obj: NodePort) -> Result<&mut Self, ComputeNodeBuilderError>;
+
+    fn build(&mut self) -> Result<ComputeNode, ComputeNodeBuilderError>;
 }

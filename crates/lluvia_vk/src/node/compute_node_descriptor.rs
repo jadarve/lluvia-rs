@@ -1,5 +1,6 @@
 //! Descriptor used to build a [`ComputeNode`](super::ComputeNode).
 
+use bon::Builder;
 use std::collections::HashMap;
 
 use crate::math;
@@ -16,16 +17,25 @@ use super::port_descriptor::PortDescriptor;
 /// Descriptor used to build a [`ComputeNode`](super::ComputeNode).
 ///
 /// Mirrors C++ `ll::ComputeNodeDescriptor`.
-#[derive(Clone)]
+#[derive(Clone, Builder)]
 pub struct ComputeNodeDescriptor {
-    pub(crate) program: Option<Program>,
-    pub function_name: String,
-
-    // FIXME: should use some linear algebra to represent this.
-    pub local_shape: math::UVec3,
-    pub grid_shape: math::UVec3,
+    #[builder(field)]
     pub ports: Vec<PortDescriptor>,
+
+    #[builder(field)]
     pub constants: HashMap<String, Constant>,
+
+    #[builder(field = math::UVec3::ONE)]
+    pub local_shape: math::UVec3,
+
+    #[builder(field = math::UVec3::ONE)]
+    pub grid_shape: math::UVec3,
+
+    #[builder(into)]
+    pub program: Option<Program>,
+
+    #[builder(default = "main".to_string(), into)]
+    pub function_name: String,
 }
 
 impl Default for ComputeNodeDescriptor {
@@ -41,19 +51,7 @@ impl Default for ComputeNodeDescriptor {
     }
 }
 
-impl ComputeNodeDescriptor {
-    /// Sets the shader program.
-    pub fn program(mut self, program: Program) -> Self {
-        self.program = Some(program);
-        self
-    }
-
-    /// Sets the entry-point function name (default: `"main"`).
-    pub fn function_name(mut self, name: impl Into<String>) -> Self {
-        self.function_name = name.into();
-        self
-    }
-
+impl<State: compute_node_descriptor_builder::State> ComputeNodeDescriptorBuilder<State> {
     /// Sets the local workgroup shape `[x, y, z]`.
     pub fn local_shape(mut self, shape: &math::UVec3) -> Self {
         self.local_shape = *shape;
@@ -80,6 +78,20 @@ impl ComputeNodeDescriptor {
         self
     }
 
+    /// Adds a constant.
+    pub fn add_constant(mut self, name: impl Into<String>, value: Constant) -> Self {
+        self.constants.insert(name.into(), value);
+        self
+    }
+}
+
+impl ComputeNodeDescriptor {
+    /// Adds a port descriptor.
+    pub fn add_port(mut self, port: PortDescriptor) -> Self {
+        self.ports.push(port);
+        self
+    }
+
     /// Sets a constant.
     pub fn set_constant(&mut self, name: impl Into<String>, value: Constant) {
         self.constants.insert(name.into(), value);
@@ -90,26 +102,6 @@ impl ComputeNodeDescriptor {
         self.constants
             .get(name)
             .ok_or_else(|| ComputeNodeError::ConstantNotFound(name.to_string()))
-    }
-
-    /// Returns the program, if set.
-    pub fn get_program(&self) -> Option<&Program> {
-        self.program.as_ref()
-    }
-
-    /// Returns the function name.
-    pub fn get_function_name(&self) -> &str {
-        &self.function_name
-    }
-
-    /// Returns the local workgroup shape.
-    pub fn get_local_shape(&self) -> math::UVec3 {
-        self.local_shape
-    }
-
-    /// Returns the dispatch grid shape.
-    pub fn get_grid_shape(&self) -> math::UVec3 {
-        self.grid_shape
     }
 
     pub(super) fn validate(&self) -> Result<(), ComputeNodeError> {
@@ -141,22 +133,29 @@ mod tests {
     }
 
     #[test]
-    fn validate_requires_function_name() {
-        // We cannot construct a real `Program` in a unit test, so we poke the
-        // struct fields directly via `Default` + field mutation after confirming
-        // the only remaining path is the function-name check.
-        // Skipped: requires a live Vulkan device to build a Program.
-        // The `validate_requires_program` test covers the preceding guard;
-        // this test documents the intent for integration-level coverage.
+    fn builder_sets_default_values() {
+        let desc = ComputeNodeDescriptor::builder().build();
+        assert!(desc.program.is_none());
+        assert_eq!(desc.function_name, "main");
+        assert_eq!(desc.local_shape.inner.x, 1);
+        assert_eq!(desc.grid_shape.inner.x, 1);
+        assert!(desc.ports.is_empty());
+        assert!(desc.constants.is_empty());
     }
 
     #[test]
-    fn validate_rejects_zero_local_shape_x() {
-        let mut desc = descriptor_without_program();
-        desc.program = None; // keep None so we hit InvalidProgram first — test the shape guard indirectly
-        // Shape validation only runs after program check passes; document the
-        // expected error for integration tests.
-        let _ = desc.validate(); // just ensure no panic
+    fn builder_adds_port_and_constant() {
+        let port = PortDescriptor::default();
+        let val = Constant::Int(42);
+
+        let desc = ComputeNodeDescriptor::builder()
+            .add_port(port)
+            .add_constant("my_const", val)
+            .build();
+
+        assert_eq!(desc.ports.len(), 1);
+        assert_eq!(desc.constants.len(), 1);
+        assert!(desc.get_constant("my_const").is_ok());
     }
 
     #[test]
@@ -164,9 +163,10 @@ mod tests {
         let local = math::UVec3::new(8, 4, 2);
         let global = math::UVec3::new(17, 9, 5);
 
-        let desc = ComputeNodeDescriptor::default()
+        let desc = ComputeNodeDescriptor::builder()
             .local_shape(&local)
-            .configure_grid_shape(&global);
+            .configure_grid_shape(&global)
+            .build();
 
         // ceil(17/8) = 3, ceil(9/4) = 3, ceil(5/2) = 3
         assert_eq!(desc.grid_shape.inner.x, 3);
@@ -179,9 +179,10 @@ mod tests {
         let local = math::UVec3::new(4, 4, 4);
         let global = math::UVec3::new(8, 8, 8);
 
-        let desc = ComputeNodeDescriptor::default()
+        let desc = ComputeNodeDescriptor::builder()
             .local_shape(&local)
-            .configure_grid_shape(&global);
+            .configure_grid_shape(&global)
+            .build();
 
         assert_eq!(desc.grid_shape.inner.x, 2);
         assert_eq!(desc.grid_shape.inner.y, 2);

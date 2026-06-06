@@ -106,11 +106,13 @@ impl ComputeNode {
     }
 
     /// Sets a constant on the descriptor.
+    /// FIXME: this should not be here
     pub fn set_constant(&mut self, name: impl Into<String>, value: Constant) {
         self.descriptor.set_constant(name, value);
     }
 
     /// Gets a constant reference by name.
+    /// FIXME: this should not be here
     pub fn get_constant(&self, name: &str) -> Result<&Constant, ComputeNodeError> {
         self.descriptor.get_constant(name)
     }

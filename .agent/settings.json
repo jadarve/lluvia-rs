@@ -6,7 +6,8 @@
       "command(cargo fmt)",
       "command(cargo fmt --all)",
       "command(cargo clippy)",
-      "command(cargo clippy --workspace --all-targets --all-features -- -D warnings)"
+      "command(cargo clippy --workspace --all-targets --all-features -- -D warnings)",
+      "command(cargo test --package lluvia_vk --lib node::compute_node_descriptor2)"
     ]
   }
 }

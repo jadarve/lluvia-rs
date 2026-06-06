@@ -76,28 +76,23 @@ impl PyImageDescriptor {
     }
 
     pub fn width(&mut self, w: u32) {
-        let inner = self.inner.clone().width(w);
-        self.inner = inner;
+        self.inner.width = w;
     }
 
     pub fn height(&mut self, h: u32) {
-        let inner = self.inner.clone().height(h);
-        self.inner = inner;
+        self.inner.height = h;
     }
 
     pub fn depth(&mut self, d: u32) {
-        let inner = self.inner.clone().depth(d);
-        self.inner = inner;
+        self.inner.depth = d;
     }
 
     pub fn channel_type(&mut self, ct: PyChannelType) {
-        let inner = self.inner.clone().channel_type(ct.into());
-        self.inner = inner;
+        self.inner.channel_type = ct.into();
     }
 
     pub fn channel_count(&mut self, cc: PyChannelCount) {
-        let inner = self.inner.clone().channel_count(cc.into());
-        self.inner = inner;
+        self.inner.channel_count = cc.into();
     }
 }
 
@@ -172,23 +167,22 @@ impl PyImageViewDescriptor {
     }
 
     pub fn filter_mode(&mut self, mode: PyImageFilterMode) {
-        let inner = self.inner.clone().filter_mode(mode.into());
-        self.inner = inner;
+        self.inner.filter_mode = mode.into();
     }
 
     pub fn address_mode(&mut self, mode: PyImageAddressMode) {
-        let inner = self.inner.clone().address_mode(mode.into());
-        self.inner = inner;
+        let m = mode.into();
+        self.inner.address_mode_u = m;
+        self.inner.address_mode_v = m;
+        self.inner.address_mode_w = m;
     }
 
     pub fn normalized_coordinates(&mut self, enabled: bool) {
-        let inner = self.inner.clone().normalized_coordinates(enabled);
-        self.inner = inner;
+        self.inner.normalized_coordinates = enabled;
     }
 
     pub fn is_sampled(&mut self, sampled: bool) {
-        let inner = self.inner.clone().is_sampled(sampled);
-        self.inner = inner;
+        self.inner.is_sampled = sampled;
     }
 }
 

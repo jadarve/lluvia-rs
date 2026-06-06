@@ -129,7 +129,7 @@ pub fn vulkan_image_format(channels: ChannelCount, channel_type: ChannelType) ->
 // ---------------------------------------------------------------------------
 
 /// Descriptor for creating images, mirroring C++ `ll::ImageDescriptor`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, bon::Builder)]
 pub struct ImageDescriptor {
     pub width: u32,
     pub height: u32,
@@ -153,42 +153,6 @@ impl Default for ImageDescriptor {
 }
 
 impl ImageDescriptor {
-    /// Builder-style setter for width.
-    pub fn width(mut self, w: u32) -> Self {
-        self.width = w;
-        self
-    }
-
-    /// Builder-style setter for height.
-    pub fn height(mut self, h: u32) -> Self {
-        self.height = h;
-        self
-    }
-
-    /// Builder-style setter for depth.
-    pub fn depth(mut self, d: u32) -> Self {
-        self.depth = d;
-        self
-    }
-
-    /// Builder-style setter for channel type.
-    pub fn channel_type(mut self, ct: ChannelType) -> Self {
-        self.channel_type = ct;
-        self
-    }
-
-    /// Builder-style setter for channel count.
-    pub fn channel_count(mut self, cc: ChannelCount) -> Self {
-        self.channel_count = cc;
-        self
-    }
-
-    /// Builder-style setter for image usage flags.
-    pub fn usage(mut self, u: ImageUsage) -> Self {
-        self.usage = u;
-        self
-    }
-
     /// Vulkan format derived from channel count and type.
     pub fn format(&self) -> Format {
         vulkan_image_format(self.channel_count, self.channel_type)
@@ -329,13 +293,24 @@ impl From<ImageFilterMode> for Filter {
 }
 
 /// Descriptor for `ImageView` creation, mirroring C++ `ll::ImageViewDescriptor`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, bon::Builder)]
 pub struct ImageViewDescriptor {
-    pub filter_mode: ImageFilterMode,
+    #[builder(field = ImageAddressMode::Repeat)]
     pub address_mode_u: ImageAddressMode,
+
+    #[builder(field = ImageAddressMode::Repeat)]
     pub address_mode_v: ImageAddressMode,
+
+    #[builder(field = ImageAddressMode::Repeat)]
     pub address_mode_w: ImageAddressMode,
+
+    #[builder(default = ImageFilterMode::Nearest)]
+    pub filter_mode: ImageFilterMode,
+
+    #[builder(default)]
     pub normalized_coordinates: bool,
+
+    #[builder(default)]
     pub is_sampled: bool,
 }
 
@@ -352,9 +327,19 @@ impl Default for ImageViewDescriptor {
     }
 }
 
-impl ImageViewDescriptor {
-    pub fn filter_mode(mut self, mode: ImageFilterMode) -> Self {
-        self.filter_mode = mode;
+impl<State: image_view_descriptor_builder::State> ImageViewDescriptorBuilder<State> {
+    pub fn address_mode_u(mut self, mode: ImageAddressMode) -> Self {
+        self.address_mode_u = mode;
+        self
+    }
+
+    pub fn address_mode_v(mut self, mode: ImageAddressMode) -> Self {
+        self.address_mode_v = mode;
+        self
+    }
+
+    pub fn address_mode_w(mut self, mode: ImageAddressMode) -> Self {
+        self.address_mode_w = mode;
         self
     }
 
@@ -362,16 +347,6 @@ impl ImageViewDescriptor {
         self.address_mode_u = mode;
         self.address_mode_v = mode;
         self.address_mode_w = mode;
-        self
-    }
-
-    pub fn normalized_coordinates(mut self, enabled: bool) -> Self {
-        self.normalized_coordinates = enabled;
-        self
-    }
-
-    pub fn is_sampled(mut self, sampled: bool) -> Self {
-        self.is_sampled = sampled;
         self
     }
 }
@@ -453,11 +428,14 @@ mod test {
     #[test]
     fn test_image_creation() -> Result<()> {
         let session = Session::new(SessionDescriptor::builder().build())?;
-        let desc = ImageDescriptor::default()
+        let desc = ImageDescriptor::builder()
             .width(64)
             .height(64)
+            .depth(1)
             .channel_type(ChannelType::Float32)
-            .channel_count(ChannelCount::C4);
+            .channel_count(ChannelCount::C4)
+            .usage(ImageUsage::STORAGE | ImageUsage::SAMPLED | ImageUsage::TRANSFER_SRC | ImageUsage::TRANSFER_DST)
+            .build();
 
         let image = session.create_image(desc)?;
         assert_eq!(image.descriptor().width, 64);
@@ -468,11 +446,14 @@ mod test {
     #[test]
     fn test_image_view_creation() -> Result<()> {
         let session = Session::new(SessionDescriptor::builder().build())?;
-        let desc = ImageDescriptor::default()
+        let desc = ImageDescriptor::builder()
             .width(32)
             .height(32)
+            .depth(1)
             .channel_type(ChannelType::Uint8)
-            .channel_count(ChannelCount::C4);
+            .channel_count(ChannelCount::C4)
+            .usage(ImageUsage::STORAGE | ImageUsage::SAMPLED | ImageUsage::TRANSFER_SRC | ImageUsage::TRANSFER_DST)
+            .build();
 
         let image = session.create_image(desc)?;
         let view_desc = ImageViewDescriptor::default();

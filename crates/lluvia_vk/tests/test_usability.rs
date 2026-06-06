@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use lluvia_vk as ll;
+    use lluvia_vk::{self as ll, node::Node};
 
     #[cfg(test)]
     mod vs {
@@ -81,7 +81,7 @@ mod tests {
         let sh = vs::load(session.device())?;
         let program = session.create_program_from_shader_module(sh)?;
 
-        let descriptor = ll::node::ComputeNodeDescriptor::default()
+        let descriptor = ll::node::ComputeNodeDescriptor::builder()
             .program(program)
             .function_name("main")
             .local_shape(&lluvia_vk::math::UVec3::new(32, 1, 1))
@@ -91,7 +91,8 @@ mod tests {
                 name: "out0".to_string(),
                 direction: ll::node::PortDirection::Out,
                 port_type: ll::node::PortType::Buffer,
-            });
+            })
+            .build();
 
         let mut node = session.create_compute_node(descriptor)?;
 
@@ -169,6 +170,153 @@ mod tests {
         Ok(())
     }
 
+    struct MyScriptableNode {
+        session: std::sync::Arc<ll::Session>,
+        inner: Box<dyn ll::node::ComputeNodeBuilder>,
+        descriptor: Option<ll::node::ComputeNodeDescriptor>,
+        bindings: std::collections::HashMap<String, ll::node::NodePort>,
+    }
+
+    impl MyScriptableNode {
+        fn new(session: std::sync::Arc<ll::Session>, inner: Box<dyn ll::node::ComputeNodeBuilder>) -> Self {
+            Self {
+                session,
+                inner,
+                descriptor: None,
+                bindings: std::collections::HashMap::new(),
+            }
+        }
+    }
+
+    impl ll::node::ComputeNodeBuilder2 for MyScriptableNode {
+        fn build_descriptor(&mut self) -> Result<&mut Self, ll::node::ComputeNodeBuilderError> {
+            self.descriptor = Some(self.inner.get_descriptor()?);
+            Ok(self)
+        }
+
+        fn get_descriptor(&mut self) -> Result<ll::node::ComputeNodeDescriptor, ll::node::ComputeNodeBuilderError> {
+            if self.descriptor.is_none() {
+                self.build_descriptor()?;
+            }
+
+            Ok(self.descriptor.as_ref().unwrap().clone())
+        }
+
+        fn init_node(&self, node: &mut ll::node::ComputeNode) -> Result<(), ll::node::ComputeNodeError> {
+            self.inner.init_node(node)
+        }
+
+        fn set_constant(
+            &mut self,
+            name: impl Into<String>,
+            value: ll::node::Constant,
+        ) -> Result<&mut Self, ll::node::ComputeNodeBuilderError> {
+            self.descriptor = match self.descriptor.take() {
+                Some(mut descriptor) => {
+                    descriptor.constants.insert(name.into(), value);
+                    Some(descriptor)
+                }
+                None => {
+                    return Err(ll::node::ComputeNodeBuilderError::RuntimeError {
+                        msg: "descriptor not initialized".to_string(),
+                    });
+                }
+            };
+
+            Ok(self)
+        }
+
+        fn bind(
+            &mut self,
+            name: &str,
+            obj: ll::node::NodePort,
+        ) -> Result<&mut Self, ll::node::ComputeNodeBuilderError> {
+            self.bindings.insert(name.to_string(), obj);
+            Ok(self)
+        }
+
+        fn build(&mut self) -> Result<ll::node::ComputeNode, ll::node::ComputeNodeBuilderError> {
+            // FIXME: should not need 2 descriptors
+            let descriptor = self.get_descriptor()?;
+
+            // create the node
+            let mut node = self
+                .session
+                .create_compute_node(descriptor)
+                .map_err(|e| ll::node::ComputeNodeBuilderError::RuntimeError { msg: e.to_string() })?;
+
+            // bind ports
+            for (name, port) in self.bindings.drain() {
+                node.bind(&name, port)
+                    .map_err(|e| ll::node::ComputeNodeBuilderError::RuntimeError { msg: e.to_string() })?;
+            }
+
+            ///////////////////////////////////////////////////////////////////
+            // This block is done by the script
+            // node.push_constants = Some(d2.con)
+            // push constants
+            // let mut push_constants = ll::node::PushConstants::default();
+
+            // for (_name, value) in d2.constants.drain() {
+            //     match value {
+            //         ll::node::Constant::Float(f) => push_constants.push_f32(f),
+            //         ll::node::Constant::Int(i) => push_constants.push_i32(i),
+            //         _ => {
+            //             return Err(ll::node::ComputeNodeBuilderError::RuntimeError {
+            //                 msg: "invalid constant type".to_string(),
+            //             });
+            //         }
+            //     }
+            // }
+
+            // node.push_constants = Some(push_constants);
+
+            // // FIXME: hardcoded to test
+            // node.set_grid_shape(&ll::math::UVec3::new(128, 1, 1));
+
+            self.inner
+                .init_node(&mut node)
+                .map_err(|e| ll::node::ComputeNodeBuilderError::RuntimeError { msg: e.to_string() })?;
+
+            Ok(node)
+        }
+    }
+
+    #[test]
+    fn test_scriptable_node() -> Result<()> {
+        use ll::node::ComputeNodeBuilder2;
+
+        let session_descriptor = ll::SessionDescriptor::default();
+
+        let session = ll::Session::new(session_descriptor)?;
+
+        let device_buffer = session.create_buffer_device_local(512)?;
+        let staging_buffer = session.create_buffer_host_visible(512)?;
+
+        let inner_builder = session.load_compute_node_builder("lluvia/assign")?;
+        let compute_node = MyScriptableNode::new(session.clone(), inner_builder)
+            .build_descriptor()?
+            .set_constant("offset", ll::node::Constant::Float(10.0))?
+            .bind("out_buffer", ll::node::NodePort::Buffer(device_buffer.clone()))?
+            .build()?;
+
+        let mut builder_cb = session.create_command_buffer_builder()?;
+        builder_cb.record_compute_node(&compute_node)?;
+        builder_cb.copy_buffer(device_buffer.clone(), staging_buffer.clone())?;
+
+        let command_buffer = builder_cb.build_command_buffer()?;
+        session.run(command_buffer)?;
+
+        let data = staging_buffer.read();
+        let floats: &[f32] = bytemuck::cast_slice(&data);
+
+        for (i, item) in floats.iter().enumerate() {
+            assert_eq!(*item, i as f32 + 10.0, "index {i}");
+        }
+
+        Ok(())
+    }
+
     #[test]
     fn test_luau_load_program() -> Result<()> {
         let session = ll::Session::new(ll::SessionDescriptor::default())?;
@@ -209,32 +357,36 @@ mod tests {
         let staging_in = session.create_buffer_host_visible(img_in_size)?;
         staging_in.write(rgba_img.as_raw());
 
-        let img_in_desc = ll::image::ImageDescriptor::default()
+        let img_in_desc = ll::image::ImageDescriptor::builder()
             .width(width)
             .height(height)
+            .depth(1)
             .channel_count(ll::image::ChannelCount::C4)
             .channel_type(ll::image::ChannelType::Uint8)
             .usage(
                 vulkano::image::ImageUsage::STORAGE
                     | vulkano::image::ImageUsage::TRANSFER_DST
                     | vulkano::image::ImageUsage::TRANSFER_SRC,
-            );
+            )
+            .build();
 
         let img_in = session.create_image(img_in_desc)?;
 
         let view_desc = ll::image::ImageViewDescriptor::default();
         let view_in = img_in.create_image_view(&view_desc)?;
 
-        let img_out_desc = ll::image::ImageDescriptor::default()
+        let img_out_desc = ll::image::ImageDescriptor::builder()
             .width(width)
             .height(height)
+            .depth(1)
             .channel_count(ll::image::ChannelCount::C1)
             .channel_type(ll::image::ChannelType::Uint8)
             .usage(
                 vulkano::image::ImageUsage::STORAGE
                     | vulkano::image::ImageUsage::TRANSFER_DST
                     | vulkano::image::ImageUsage::TRANSFER_SRC,
-            );
+            )
+            .build();
         let img_out = session.create_image(img_out_desc)?;
         let view_out = img_out.create_image_view(&view_desc)?;
 

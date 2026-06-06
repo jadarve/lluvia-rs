@@ -36,3 +36,15 @@ impl UVec3 {
         }
     }
 }
+
+impl From<&UVec3> for UVec3 {
+    fn from(v: &UVec3) -> Self {
+        *v
+    }
+}
+
+impl From<&Vec3> for Vec3 {
+    fn from(v: &Vec3) -> Self {
+        *v
+    }
+}
