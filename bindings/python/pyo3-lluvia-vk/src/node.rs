@@ -1,7 +1,8 @@
 use crate::buffer::PyBuffer;
 use crate::image::PyImageView;
 use crate::program::PyProgram;
-use lluvia_vk::node::{ComputeNode, ComputeNodeDescriptor, NodePort, PortDescriptor, PortDirection, PortType};
+use lluvia_vk::node::{ComputeNode, NodePort, PortDescriptor, PortDirection, PortType};
+use lluvia_vk::program::Program;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
@@ -61,7 +62,10 @@ impl PyPortDescriptor {
 #[pyclass(from_py_object, name = "ComputeNodeDescriptor")]
 #[derive(Clone)]
 pub struct PyComputeNodeDescriptor {
-    pub(crate) inner: ComputeNodeDescriptor,
+    pub(crate) ports: Vec<PortDescriptor>,
+    pub(crate) global_shape: Option<lluvia_vk::math::UVec3>,
+    pub(crate) program: Option<Program>,
+    pub(crate) function_name: Option<String>,
 }
 
 // FIXME: review why I need to set all attributes
@@ -70,30 +74,27 @@ impl PyComputeNodeDescriptor {
     #[new]
     pub fn new() -> Self {
         Self {
-            inner: ComputeNodeDescriptor {
-                ports: Vec::new(),
-                constants: std::collections::HashMap::new(),
-                global_shape: lluvia_vk::math::UVec3::ONE,
-                program: None,
-                function_name: "main".to_string(),
-            },
+            ports: Vec::new(),
+            global_shape: Some(lluvia_vk::math::UVec3::ONE),
+            program: None,
+            function_name: Some("main".to_string()),
         }
     }
 
     pub fn program(&mut self, program: &PyProgram) {
-        self.inner.program = Some(program.inner.clone());
+        self.program = Some(program.inner.clone());
     }
 
     pub fn function_name(&mut self, name: &str) {
-        self.inner.function_name = name.to_string();
+        self.function_name = Some(name.to_string());
     }
 
     pub fn global_shape(&mut self, shape: [u32; 3]) {
-        self.inner.global_shape = lluvia_vk::math::UVec3::new(shape[0], shape[1], shape[2]);
+        self.global_shape = Some(lluvia_vk::math::UVec3::new(shape[0], shape[1], shape[2]));
     }
 
     pub fn add_port(&mut self, port: &PyPortDescriptor) {
-        self.inner.ports.push(port.inner.clone());
+        self.ports.push(port.inner.clone());
     }
 }
 

@@ -132,7 +132,7 @@ impl ComputeNode {
     ) -> Result<Self, ComputeNodeError> {
         descriptor.validate()?;
 
-        let program = descriptor.program.as_ref().ok_or(ComputeNodeError::InvalidProgram)?;
+        let program = &descriptor.program;
 
         ///////////////////////////////////////////////////////////////////////
         // Specialization constants to set local grid shape

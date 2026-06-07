@@ -3,6 +3,7 @@ use crate::command_buffer::{PyCommandBuffer, PyCommandBufferBuilder};
 use crate::image::{PyImage, PyImageDescriptor};
 use crate::node::{PyComputeNode, PyComputeNodeDescriptor};
 use crate::program::PyProgram;
+use lluvia_vk::node::ComputeNodeDescriptor;
 use lluvia_vk::{Session, SessionDescriptor};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -50,9 +51,23 @@ impl PySession {
     }
 
     pub fn create_compute_node(&self, descriptor: &PyComputeNodeDescriptor) -> PyResult<PyComputeNode> {
+        let program = descriptor
+            .program
+            .clone()
+            .ok_or_else(|| PyRuntimeError::new_err("program is required"))?;
+
+        let mut builder = ComputeNodeDescriptor::builder()
+            .global_shape(descriptor.global_shape.unwrap_or(lluvia_vk::math::UVec3::ONE))
+            .program(program)
+            .function_name(descriptor.function_name.clone().unwrap_or_else(|| "main".to_string()));
+
+        for port in descriptor.ports.iter() {
+            builder = builder.add_port(port.clone());
+        }
+
         let inner = self
             .inner
-            .create_compute_node(descriptor.inner.clone())
+            .create_compute_node(builder.build())
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
         Ok(PyComputeNode { inner })
     }

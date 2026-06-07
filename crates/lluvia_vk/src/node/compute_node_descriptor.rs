@@ -29,7 +29,7 @@ pub struct ComputeNodeDescriptor {
     pub global_shape: math::UVec3,
 
     #[builder(into)]
-    pub program: Option<Program>,
+    pub program: Program,
 
     #[builder(default = "main".to_string(), into)]
     pub function_name: String,
@@ -69,9 +69,6 @@ impl ComputeNodeDescriptor {
     }
 
     pub(super) fn validate(&self) -> Result<(), ComputeNodeError> {
-        if self.program.is_none() {
-            return Err(ComputeNodeError::InvalidProgram);
-        }
         if self.function_name.is_empty() {
             return Err(ComputeNodeError::InvalidFunctionName);
         }
@@ -84,20 +81,30 @@ mod tests {
 
     use super::*;
 
-    fn descriptor_without_program() -> ComputeNodeDescriptor {
-        ComputeNodeDescriptor::builder().global_shape(math::UVec3::ONE).build()
+    mod vs {
+        vulkano_shaders::shader!(
+            ty: "compute",
+            src: r"
+            #version 450
+            layout(local_size_x = 1) in;
+            void main() {}
+            "
+        );
     }
 
-    #[test]
-    fn validate_requires_program() {
-        let desc = descriptor_without_program();
-        assert!(matches!(desc.validate(), Err(ComputeNodeError::InvalidProgram)));
+    fn create_test_program() -> Program {
+        let session = crate::Session::new(crate::SessionDescriptor::default()).unwrap();
+        let sh = vs::load(session.device()).unwrap();
+        session.create_program_from_shader_module(sh).unwrap()
     }
 
     #[test]
     fn builder_sets_default_values() {
-        let desc = ComputeNodeDescriptor::builder().global_shape(math::UVec3::ONE).build();
-        assert!(desc.program.is_none());
+        let program = create_test_program();
+        let desc = ComputeNodeDescriptor::builder()
+            .global_shape(math::UVec3::ONE)
+            .program(program)
+            .build();
         assert_eq!(desc.function_name, "main");
         assert!(desc.ports.is_empty());
         assert!(desc.constants.is_empty());
@@ -107,9 +114,11 @@ mod tests {
     fn builder_adds_port_and_constant() {
         let port = PortDescriptor::default();
         let val = Constant::Int(42);
+        let program = create_test_program();
 
         let desc = ComputeNodeDescriptor::builder()
             .global_shape(math::UVec3::ONE)
+            .program(program)
             .add_port(port)
             .add_constant("my_const", val)
             .build();
