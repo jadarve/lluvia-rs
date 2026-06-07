@@ -16,7 +16,6 @@ use vulkano::pipeline::{PipelineLayout, PipelineShaderStageCreateInfo, compute::
 use vulkano::shader::SpecializedShaderModule;
 
 use crate::math;
-use crate::node::ComputeDimensions;
 
 use super::compute_node_descriptor::ComputeNodeDescriptor;
 use super::node_port::{NodePort, PushConstants};
@@ -37,7 +36,7 @@ fn get_groups_shape(workgroup_shape: &math::UVec3, global_shape: &math::UVec3) -
 /// 1. Maximum utilization of hardware subgroups by building up power-of-two dimensions.
 /// 2. Total invocations (X * Y * Z) do not exceed the device's `max_compute_work_group_invocations`.
 /// 3. Individual dimensions do not exceed the device's `max_compute_work_group_size` limits.
-fn get_workgroup_shape(device: &Arc<Device>, dimensions: ComputeDimensions) -> math::UVec3 {
+fn get_workgroup_shape(device: &Arc<Device>, global: &math::UVec3) -> Result<math::UVec3, ComputeNodeError> {
     // Get properties of the physical device
     let properties = device.physical_device().properties();
 
@@ -48,62 +47,60 @@ fn get_workgroup_shape(device: &Arc<Device>, dimensions: ComputeDimensions) -> m
     let max_invocations = properties.max_compute_work_group_invocations;
     let max_workgroup_size = properties.max_compute_work_group_size; // [u32; 3]
 
-    match dimensions {
-        ComputeDimensions::ONE => {
-            let x = max_invocations.min(max_workgroup_size[0]);
-            math::UVec3::new(x, 1, 1)
-        }
-        ComputeDimensions::TWO => {
-            let mut x = 1;
-            let mut y = 1;
+    if global.x() >= 1 && global.y() == 1 && global.z() == 1 {
+        let x = max_invocations.min(max_workgroup_size[0]);
+        Ok(math::UVec3::new(x, 1, 1))
+    } else if global.x() >= 1 && global.y() >= 1 && global.z() == 1 {
+        let mut x = 1;
+        let mut y = 1;
 
-            // The `* 2` acts as a look-ahead guard checking if doubling one of the dimensions
-            // will exceed the max_invocations limit in the next step.
-            while x * y * 2 <= max_invocations && (x < max_workgroup_size[0] || y < max_workgroup_size[1]) {
-                // Grow the smallest dimension first to maintain a balanced, square-ish shape.
-                // This maximizes spatial cache locality for 2D data (e.g. image processing).
-                if x <= y && x < max_workgroup_size[0] {
-                    x *= 2;
-                } else if y < max_workgroup_size[1] {
-                    y *= 2;
-                } else if x < max_workgroup_size[0] {
-                    // Fallback: if the preferred dimension hits its limit, grow the other dimension.
-                    x *= 2;
-                } else {
-                    break;
-                }
+        // The `* 2` acts as a look-ahead guard checking if doubling one of the dimensions
+        // will exceed the max_invocations limit in the next step.
+        while x * y * 2 <= max_invocations && (x < max_workgroup_size[0] || y < max_workgroup_size[1]) {
+            // Grow the smallest dimension first to maintain a balanced, square-ish shape.
+            // This maximizes spatial cache locality for 2D data (e.g. image processing).
+            if x <= y && x < max_workgroup_size[0] {
+                x *= 2;
+            } else if y < max_workgroup_size[1] {
+                y *= 2;
+            } else if x < max_workgroup_size[0] {
+                // Fallback: if the preferred dimension hits its limit, grow the other dimension.
+                x *= 2;
+            } else {
+                break;
             }
-            math::UVec3::new(x, y, 1)
         }
-        ComputeDimensions::THREE => {
-            let mut x = 1;
-            let mut y = 1;
-            let mut z = 1;
+        Ok(math::UVec3::new(x, y, 1))
+    } else if global.x() >= 1 && global.y() >= 1 && global.z() >= 1 {
+        let mut x = 1;
+        let mut y = 1;
+        let mut z = 1;
 
-            // The `* 2` acts as a look-ahead guard checking if doubling one of the dimensions
-            // will exceed the max_invocations limit in the next step.
-            while x * y * z * 2 <= max_invocations
-                && (x < max_workgroup_size[0] || y < max_workgroup_size[1] || z < max_workgroup_size[2])
-            {
-                // Grow the smallest dimension first to maintain a balanced, cubic-ish shape.
-                // This maximizes spatial cache locality for 3D data (e.g. volume grids).
-                if x <= y && x <= z && x < max_workgroup_size[0] {
-                    x *= 2;
-                } else if y <= z && y < max_workgroup_size[1] {
-                    y *= 2;
-                } else if z < max_workgroup_size[2] {
-                    z *= 2;
-                } else if x < max_workgroup_size[0] {
-                    // Fallback: if the preferred dimension hits its limit, grow the other dimensions.
-                    x *= 2;
-                } else if y < max_workgroup_size[1] {
-                    y *= 2;
-                } else {
-                    break;
-                }
+        // The `* 2` acts as a look-ahead guard checking if doubling one of the dimensions
+        // will exceed the max_invocations limit in the next step.
+        while x * y * z * 2 <= max_invocations
+            && (x < max_workgroup_size[0] || y < max_workgroup_size[1] || z < max_workgroup_size[2])
+        {
+            // Grow the smallest dimension first to maintain a balanced, cubic-ish shape.
+            // This maximizes spatial cache locality for 3D data (e.g. volume grids).
+            if x <= y && x <= z && x < max_workgroup_size[0] {
+                x *= 2;
+            } else if y <= z && y < max_workgroup_size[1] {
+                y *= 2;
+            } else if z < max_workgroup_size[2] {
+                z *= 2;
+            } else if x < max_workgroup_size[0] {
+                // Fallback: if the preferred dimension hits its limit, grow the other dimensions.
+                x *= 2;
+            } else if y < max_workgroup_size[1] {
+                y *= 2;
+            } else {
+                break;
             }
-            math::UVec3::new(x, y, z)
         }
+        Ok(math::UVec3::new(x, y, z))
+    } else {
+        Err(ComputeNodeError::InvalidGlobalShape(*global))
     }
 }
 
@@ -142,7 +139,18 @@ impl ComputeNode {
         // Specialization constants to set local grid shape
         let mut specialization_constants = foldhash::HashMap::<u32, vulkano::shader::SpecializationConstant>::new();
 
-        let workgroup_shape = get_workgroup_shape(&device, descriptor.dimensions);
+        // FIXME: workgroup shape also depends on the global shape of the shader, but here is not accessible yet.
+        // Consider:
+        //         global_shape: UVec3(128, 1, 1)
+        //         workgroup_shape: UVec3(1024, 1, 1)
+        //         groups: UVec3(1, 1, 1)
+        //
+        // The expected workgroup shape is (128, 1, 1)
+        let mut workgroup_shape = get_workgroup_shape(&device, &descriptor.global_shape)?;
+
+        workgroup_shape.inner.x = workgroup_shape.inner.x.min(descriptor.global_shape.inner.x);
+        workgroup_shape.inner.y = workgroup_shape.inner.y.min(descriptor.global_shape.inner.y);
+        workgroup_shape.inner.z = workgroup_shape.inner.z.min(descriptor.global_shape.inner.z);
 
         specialization_constants.insert(1, (workgroup_shape.inner.x).into());
         specialization_constants.insert(2, (workgroup_shape.inner.y).into());
@@ -280,10 +288,12 @@ impl Node for ComputeNode {
             global_shape
         } else {
             // return Err(ComputeNodeError::DispatchFailed("Global shape not set".to_string()));
-            math::UVec3::new(128, 0, 0)
+            math::UVec3::new(128, 1, 1)
         };
 
         let groups = get_groups_shape(&self.workgroup_shape, &global_shape);
+        println!("workgroup_shape: {:?}", self.workgroup_shape.inner);
+        println!("global_shape: {:?}", global_shape.inner);
         println!("groups: {:?}", groups.inner);
 
         builder
@@ -443,37 +453,40 @@ impl Node for ComputeNode {
 mod tests {
     use super::*;
     use crate::session::{Session, SessionDescriptor};
+    use anyhow::Result;
 
     #[test]
-    fn test_get_workgroup_shape() {
+    fn test_get_workgroup_shape() -> Result<()> {
         let session = Session::new(SessionDescriptor::default()).unwrap();
         let device = session.device();
 
         let max_invocations = device.physical_device().properties().max_compute_work_group_invocations;
         let max_workgroup_size = device.physical_device().properties().max_compute_work_group_size;
 
-        let shape_1d = get_workgroup_shape(&device, ComputeDimensions::ONE);
-        assert!(shape_1d.inner.x >= 1);
-        assert!(shape_1d.inner.x <= max_workgroup_size[0]);
-        assert_eq!(shape_1d.inner.y, 1);
-        assert_eq!(shape_1d.inner.z, 1);
-        assert!(shape_1d.inner.x * shape_1d.inner.y * shape_1d.inner.z <= max_invocations);
+        let shape_1d = get_workgroup_shape(&device, &(128u32, 1u32, 1u32).into())?;
+        assert!(shape_1d.x() >= 1);
+        assert!(shape_1d.x() <= max_workgroup_size[0]);
+        assert_eq!(shape_1d.y(), 1);
+        assert_eq!(shape_1d.z(), 1);
+        assert!(shape_1d.x() * shape_1d.y() * shape_1d.z() <= max_invocations);
 
-        let shape_2d = get_workgroup_shape(&device, ComputeDimensions::TWO);
-        assert!(shape_2d.inner.x >= 1);
-        assert!(shape_2d.inner.x <= max_workgroup_size[0]);
-        assert!(shape_2d.inner.y >= 1);
-        assert!(shape_2d.inner.y <= max_workgroup_size[1]);
-        assert_eq!(shape_2d.inner.z, 1);
-        assert!(shape_2d.inner.x * shape_2d.inner.y <= max_invocations);
+        let shape_2d = get_workgroup_shape(&device, &(128u32, 128u32, 1u32).into())?;
+        assert!(shape_2d.x() >= 1);
+        assert!(shape_2d.x() <= max_workgroup_size[0]);
+        assert!(shape_2d.y() >= 1);
+        assert!(shape_2d.y() <= max_workgroup_size[1]);
+        assert_eq!(shape_2d.z(), 1);
+        assert!(shape_2d.x() * shape_2d.y() <= max_invocations);
 
-        let shape_3d = get_workgroup_shape(&device, ComputeDimensions::THREE);
-        assert!(shape_3d.inner.x >= 1);
-        assert!(shape_3d.inner.x <= max_workgroup_size[0]);
-        assert!(shape_3d.inner.y >= 1);
-        assert!(shape_3d.inner.y <= max_workgroup_size[1]);
-        assert!(shape_3d.inner.z >= 1);
-        assert!(shape_3d.inner.z <= max_workgroup_size[2]);
-        assert!(shape_3d.inner.x * shape_3d.inner.y * shape_3d.inner.z <= max_invocations);
+        let shape_3d = get_workgroup_shape(&device, &(128u32, 128u32, 128u32).into())?;
+        assert!(shape_3d.x() >= 1);
+        assert!(shape_3d.x() <= max_workgroup_size[0]);
+        assert!(shape_3d.y() >= 1);
+        assert!(shape_3d.y() <= max_workgroup_size[1]);
+        assert!(shape_3d.z() >= 1);
+        assert!(shape_3d.z() <= max_workgroup_size[2]);
+        assert!(shape_3d.x() * shape_3d.y() * shape_3d.z() <= max_invocations);
+
+        Ok(())
     }
 }

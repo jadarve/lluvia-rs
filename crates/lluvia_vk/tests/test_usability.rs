@@ -130,23 +130,36 @@ mod tests {
 
     #[test]
     fn test_load_assign_node() -> Result<()> {
+        const LENGTH: u64 = 128;
+        const BUFFER_SIZE: u64 = LENGTH * std::mem::size_of::<f32>() as u64;
+        const OFFSET: f32 = 10.0;
+
         let session_descriptor = ll::SessionDescriptor::default();
 
         let session = ll::Session::new(session_descriptor)?;
 
+        let device_buffer = session.create_buffer_device_local(BUFFER_SIZE)?;
+        let staging_buffer = session.create_buffer_host_visible(BUFFER_SIZE)?;
+
         let builder = session.load_compute_node_builder("lluvia/assign")?;
 
-        let node_descriptor = builder.get_descriptor()?;
-        let mut compute_node = session.create_compute_node(node_descriptor)?;
+        // instead of calling node_descriptor.global_shape = ll::math::UVec3::new(LENGTH as u32, 1, 1);
+        // after the descriptor is built, I could padd LENGTH as argument here,
+        // which will be passed to Luau build descriptor function.
+        let mut node_descriptor = builder.get_descriptor()?;
 
-        let device_buffer = session.create_buffer_device_local(512)?;
-        let staging_buffer = session.create_buffer_host_visible(512)?;
+        // the global shape of the node must be known before creating the node.
+        node_descriptor.global_shape = ll::math::UVec3::new(LENGTH as u32, 1, 1);
+
+        // once the descriptor is passed to session.create_compute_node, the descriptor cannot be
+        // changed anymore.
+        let mut compute_node = session.create_compute_node(node_descriptor)?;
 
         use ll::node::Node;
         compute_node.bind("out_buffer", ll::node::NodePort::Buffer(device_buffer.clone()))?;
 
-        // Set the offset constant to 10.0
-        compute_node.set_constant("offset", ll::node::Constant::Float(10.0));
+        // Set the offset constant
+        compute_node.set_constant("offset", ll::node::Constant::Float(OFFSET));
 
         // this is different to Lluvia Cpp. There, the compute_node instance holds the reference to the builder
         // so that when the node is initialized, the builder is called.
@@ -164,7 +177,7 @@ mod tests {
         let floats: &[f32] = bytemuck::cast_slice(&data);
 
         for (i, item) in floats.iter().enumerate() {
-            assert_eq!(*item, i as f32 + 10.0);
+            assert_eq!(*item, i as f32 + 10.0, "index {i}");
         }
 
         Ok(())

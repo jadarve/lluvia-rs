@@ -21,6 +21,8 @@ pub use node_port::*;
 pub use node_type::*;
 pub use port_descriptor::*;
 
+use crate::math;
+
 // ---------------------------------------------------------------------------
 // ComputeNodeError
 // ---------------------------------------------------------------------------
@@ -56,6 +58,9 @@ pub enum ComputeNodeError {
 
     #[error("Constant not found: {0}")]
     ConstantNotFound(String),
+
+    #[error("Invalid global shape: {0}")]
+    InvalidGlobalShape(math::UVec3),
 }
 
 // ---------------------------------------------------------------------------
