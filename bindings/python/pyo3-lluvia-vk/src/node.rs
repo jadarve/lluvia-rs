@@ -64,12 +64,19 @@ pub struct PyComputeNodeDescriptor {
     pub(crate) inner: ComputeNodeDescriptor,
 }
 
+// FIXME: review why I need to set all attributes
 #[pymethods]
 impl PyComputeNodeDescriptor {
     #[new]
     pub fn new() -> Self {
         Self {
-            inner: ComputeNodeDescriptor::default(),
+            inner: ComputeNodeDescriptor {
+                ports: Vec::new(),
+                constants: std::collections::HashMap::new(),
+                global_shape: lluvia_vk::math::UVec3::ONE,
+                program: None,
+                function_name: "main".to_string(),
+            },
         }
     }
 

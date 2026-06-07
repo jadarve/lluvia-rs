@@ -10,15 +10,13 @@ local builder: ll.ComptueNodeBuidler = {
     ]],
 
 	new_descriptor = function()
-		local desc = ComputeNodeDescriptor()
-
-		desc.function_name = "main"
-		desc.global_shape = UVec3(128, 1, 1)
-		desc.program = ll.load_program("lluvia/assign/assign.spv")
-
-		desc:add_port(PortDescriptor(0, "out_buffer", ll.PortDirection.Out, ll.PortType.Buffer))
-
-		desc:set_constant("offset", 0.0)
+		local desc = ll.ComputeNodeDescriptorBuilder()
+			:function_name("main")
+			:global_shape(UVec3(128, 1, 1))
+			:program(ll.load_program("lluvia/assign/assign.spv"))
+			:add_port(PortDescriptor(0, "out_buffer", ll.PortDirection.Out, ll.PortType.Buffer))
+			:add_constant("offset", 0.0)
+			:build()
 
 		ll:log_info("assign.new_descriptor(): finish")
 

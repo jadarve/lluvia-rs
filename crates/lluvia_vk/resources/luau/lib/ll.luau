@@ -54,11 +54,8 @@ function module:log_error(msg: string)
 end
 
 -----------------------------------------------------------
--- ComputeNodeDescriptor
+-- ComputeNodeDescriptorBuilder
 -----------------------------------------------------------
-function module.ComputeNodeDescriptor(): ComputeNodeDescriptor
-	return ComputeNodeDescriptor()
-end
 
 function module.ComputeNodeDescriptorBuilder(): ComputeNodeDescriptorBuilder
 	return ComputeNodeDescriptorBuilder()

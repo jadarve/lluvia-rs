@@ -9,14 +9,13 @@ local builder: ll.ComptueNodeBuidler = {
     ]],
 
 	new_descriptor = function()
-		local desc = ComputeNodeDescriptor()
-
-		desc.function_name = "main"
-		desc.global_shape = UVec3(4032, 3024, 1)
-		desc.program = ll.load_program("lluvia/color/RGBA2Gray/RGBA2Gray")
-
-		desc:add_port(PortDescriptor(0, "in_rgba", ll.PortDirection.In, ll.PortType.ImageView))
-		desc:add_port(PortDescriptor(1, "out_gray", ll.PortDirection.Out, ll.PortType.ImageView))
+		local desc = ll.ComputeNodeDescriptorBuilder()
+			:function_name("main")
+			:global_shape(UVec3(4032, 3024, 1))
+			:program(ll.load_program("lluvia/color/RGBA2Gray/RGBA2Gray"))
+			:add_port(PortDescriptor(0, "in_rgba", ll.PortDirection.In, ll.PortType.ImageView))
+			:add_port(PortDescriptor(1, "out_gray", ll.PortDirection.Out, ll.PortType.ImageView))
+			:build()
 
 		return desc
 	end,

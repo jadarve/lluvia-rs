@@ -6,19 +6,12 @@ use std::sync::{Arc, Weak};
 use thiserror::Error;
 
 use crate::interpreter::wrappers::compute_node_descriptor::LuaComputeNodeDescriptorBuilder;
-use crate::node::ComputeNodeDescriptor;
 
 ///////////////////////////////////////////////////////////
 // Resource files included in the crate
 static LUAU_DIR: include_dir::Dir = include_dir::include_dir!("$CARGO_MANIFEST_DIR/resources/luau/");
 
 fn register_native_types(globals: &mlua::Table) -> Result<(), InterpreterError> {
-    globals
-        .set("ComputeNodeDescriptor", ComputeNodeDescriptor::default())
-        .map_err(|e| InterpreterError::RuntimeError {
-            msg: format!("Error registering ComputeNodeDescriptor: {e:?}"),
-        })?;
-
     globals
         .set(
             "ComputeNodeDescriptorBuilder",

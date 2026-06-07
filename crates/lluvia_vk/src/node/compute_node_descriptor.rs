@@ -18,6 +18,7 @@ use super::port_descriptor::PortDescriptor;
 ///
 /// Mirrors C++ `ll::ComputeNodeDescriptor`.
 #[derive(Clone, Builder)]
+#[builder(derive(Clone, Debug))]
 pub struct ComputeNodeDescriptor {
     #[builder(field)]
     pub ports: Vec<PortDescriptor>,
@@ -32,18 +33,6 @@ pub struct ComputeNodeDescriptor {
 
     #[builder(default = "main".to_string(), into)]
     pub function_name: String,
-}
-
-impl Default for ComputeNodeDescriptor {
-    fn default() -> Self {
-        Self {
-            program: None,
-            function_name: "main".to_string(),
-            global_shape: math::UVec3::ONE,
-            ports: Vec::new(),
-            constants: HashMap::new(),
-        }
-    }
 }
 
 impl<State: compute_node_descriptor_builder::State> ComputeNodeDescriptorBuilder<State> {
@@ -96,7 +85,7 @@ mod tests {
     use super::*;
 
     fn descriptor_without_program() -> ComputeNodeDescriptor {
-        ComputeNodeDescriptor::default()
+        ComputeNodeDescriptor::builder().global_shape(math::UVec3::ONE).build()
     }
 
     #[test]

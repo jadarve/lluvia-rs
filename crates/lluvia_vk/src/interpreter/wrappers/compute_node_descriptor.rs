@@ -26,10 +26,6 @@ impl mlua::UserData for ComputeNodeDescriptor {
     }
 
     fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {
-        methods.add_meta_function(mlua::MetaMethod::Call, |_, _self: mlua::Value| {
-            Ok(ComputeNodeDescriptor::default())
-        });
-
         methods.add_method("builder", |_, _this, ()| Ok(LuaComputeNodeDescriptorBuilder::default()));
 
         methods.add_method_mut("add_port", |_, this, port: mlua::UserDataRef<PortDescriptor>| {
@@ -52,9 +48,20 @@ impl mlua::UserData for ComputeNodeDescriptor {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct LuaComputeNodeDescriptorBuilder {
+    // ComputeNodeDescriptorBuilder needs to implement Clone
     inner: ComputeNodeDescriptor,
+}
+
+impl Default for LuaComputeNodeDescriptorBuilder {
+    fn default() -> Self {
+        Self {
+            inner: ComputeNodeDescriptor::builder()
+                .global_shape(crate::math::UVec3::ONE)
+                .build(),
+        }
+    }
 }
 
 impl mlua::UserData for LuaComputeNodeDescriptorBuilder {

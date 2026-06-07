@@ -62,8 +62,6 @@ declare class ComputeNodeDescriptor
     function get_constant(self, name: string): any
 end
 
-declare function ComputeNodeDescriptor(): ComputeNodeDescriptor
-
 -----------------------------------------------------------
 declare class ComputeNodeDescriptorBuilder
     function function_name(self, name: string): ComputeNodeDescriptorBuilder
