@@ -12,8 +12,7 @@ local builder: ll.ComptueNodeBuidler = {
 		local desc = ComputeNodeDescriptor()
 
 		desc.function_name = "main"
-		desc.local_shape = UVec3(32, 32, 1)
-		desc.grid_shape = UVec3(1, 1, 1)
+		desc.global_shape = UVec3(4032, 3024, 1)
 		desc.program = ll.load_program("lluvia/color/RGBA2Gray/RGBA2Gray")
 
 		desc:add_port(PortDescriptor(0, "in_rgba", ll.PortDirection.In, ll.PortType.ImageView))

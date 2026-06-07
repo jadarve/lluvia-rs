@@ -118,7 +118,6 @@ pub struct ComputeNode {
     descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
     descriptor_set: Option<Arc<DescriptorSet>>,
     workgroup_shape: math::UVec3,
-    global_shape: Option<math::UVec3>,
     pub push_constants: Option<PushConstants>,
 }
 
@@ -191,7 +190,6 @@ impl ComputeNode {
             descriptor_set_allocator,
             descriptor_set: None,
             workgroup_shape,
-            global_shape: None,
             push_constants: None,
         })
     }
@@ -211,21 +209,6 @@ impl ComputeNode {
     /// FIXME: this should not be here
     pub fn get_constant(&self, name: &str) -> Result<&Constant, ComputeNodeError> {
         self.descriptor.get_constant(name)
-    }
-
-    /// Returns the grid shape `[x, y, z]`.
-    pub fn grid_shape(&self) -> math::UVec3 {
-        self.descriptor.grid_shape
-    }
-
-    /// Sets the grid shape.
-    pub fn set_grid_shape(&mut self, shape: &math::UVec3) {
-        self.descriptor.grid_shape = *shape;
-    }
-
-    /// Returns the local workgroup shape.
-    pub fn local_shape(&self) -> math::UVec3 {
-        self.descriptor.local_shape
     }
 
     fn update_descriptor_set(&mut self) -> Result<(), ComputeNodeError> {
@@ -284,12 +267,7 @@ impl Node for ComputeNode {
     }
 
     fn record(&self, builder: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>) -> Result<(), ComputeNodeError> {
-        let global_shape = if let Some(global_shape) = self.global_shape {
-            global_shape
-        } else {
-            // return Err(ComputeNodeError::DispatchFailed("Global shape not set".to_string()));
-            math::UVec3::new(128, 1, 1)
-        };
+        let global_shape = self.descriptor.global_shape;
 
         let groups = get_groups_shape(&self.workgroup_shape, &global_shape);
         println!("workgroup_shape: {:?}", self.workgroup_shape.inner);

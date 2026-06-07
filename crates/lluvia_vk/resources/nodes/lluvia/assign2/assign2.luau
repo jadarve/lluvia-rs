@@ -12,8 +12,7 @@ local builder: ll.ComptueNodeBuidler = {
 	new_descriptor = function()
 		local desc = ll.ComputeNodeDescriptorBuilder()
 			:function_name("main")
-			:local_shape(UVec3(32, 1, 1))
-			:grid_shape(UVec3(1, 1, 1))
+			:global_shape(UVec3(128, 1, 1))
 			:program(ll.load_program("lluvia/assign/assign.spv"))
 			:add_port(PortDescriptor(0, "out_buffer", ll.PortDirection.Out, ll.PortType.Buffer))
 			:add_constant("offset", 0.0)
@@ -25,11 +24,6 @@ local builder: ll.ComptueNodeBuidler = {
 	end,
 
 	on_node_init = function(self, node)
-		local out_buffer = node:get_port("out_buffer")
-		local N = out_buffer // 4
-
-		node:configure_grid_shape(UVec3(N, 1, 1))
-
 		local offset = node:get_constant("offset")
 		local pushConstants = PushConstants()
 		pushConstants:push_f32(offset)

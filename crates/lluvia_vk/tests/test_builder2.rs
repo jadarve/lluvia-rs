@@ -72,7 +72,7 @@ mod tests {
                     .port_type(ll::node::PortType::Buffer)
                     .build(),
             )
-            .local_shape(&lluvia_vk::math::UVec3::new(32, 1, 1)) // I don't really care about local and grid, I want to set global
+            .global_shape(lluvia_vk::math::UVec3::new(32, 1, 1)) // I don't really care about local and grid, I want to set global
             .program(program) // FIXME: program is optional, but a descriptor without it has no use.
             .build();
 

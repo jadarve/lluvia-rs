@@ -9,15 +9,9 @@ impl mlua::UserData for ComputeNodeDescriptor {
             Ok(())
         });
 
-        fields.add_field_method_get("local_shape", |_, this| Ok(this.local_shape));
-        fields.add_field_method_set("local_shape", |_, this, val: mlua::UserDataRef<crate::math::UVec3>| {
-            this.local_shape = *val;
-            Ok(())
-        });
-
-        fields.add_field_method_get("grid_shape", |_, this| Ok(this.grid_shape));
-        fields.add_field_method_set("grid_shape", |_, this, val: mlua::UserDataRef<crate::math::UVec3>| {
-            this.grid_shape = *val;
+        fields.add_field_method_get("global_shape", |_, this| Ok(this.global_shape));
+        fields.add_field_method_set("global_shape", |_, this, val: mlua::UserDataRef<crate::math::UVec3>| {
+            this.global_shape = *val;
             Ok(())
         });
 
@@ -74,25 +68,10 @@ impl mlua::UserData for LuaComputeNodeDescriptorBuilder {
             Ok(this.clone())
         });
 
-        methods.add_method_mut("local_shape", |_, this, val: mlua::UserDataRef<crate::math::UVec3>| {
-            this.inner.local_shape = *val;
+        methods.add_method_mut("global_shape", |_, this, val: mlua::UserDataRef<crate::math::UVec3>| {
+            this.inner.global_shape = *val;
             Ok(this.clone())
         });
-
-        methods.add_method_mut("grid_shape", |_, this, val: mlua::UserDataRef<crate::math::UVec3>| {
-            this.inner.grid_shape = *val;
-            Ok(this.clone())
-        });
-
-        methods.add_method_mut(
-            "configure_grid_shape",
-            |_, this, val: mlua::UserDataRef<crate::math::UVec3>| {
-                this.inner.grid_shape.inner.x = val.inner.x.div_ceil(this.inner.local_shape.inner.x);
-                this.inner.grid_shape.inner.y = val.inner.y.div_ceil(this.inner.local_shape.inner.y);
-                this.inner.grid_shape.inner.z = val.inner.z.div_ceil(this.inner.local_shape.inner.z);
-                Ok(this.clone())
-            },
-        );
 
         methods.add_method_mut(
             "program",

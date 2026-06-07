@@ -46,15 +46,6 @@ impl mlua::UserData for LuaComputeNode {
             }
         });
 
-        methods.add_method(
-            "configure_grid_shape",
-            |_, this, shape: mlua::UserDataRef<crate::math::UVec3>| {
-                let node = unsafe { &mut *this.node_ptr };
-                node.set_grid_shape(&shape);
-                Ok(())
-            },
-        );
-
         methods.add_method("get_constant", |_, this, name: String| {
             let node = unsafe { &*this.node_ptr };
             let constant = node

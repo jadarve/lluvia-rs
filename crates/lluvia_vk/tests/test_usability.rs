@@ -84,8 +84,7 @@ mod tests {
         let descriptor = ll::node::ComputeNodeDescriptor::builder()
             .program(program)
             .function_name("main")
-            .local_shape(&lluvia_vk::math::UVec3::new(32, 1, 1))
-            .grid_shape(&lluvia_vk::math::UVec3::new(4, 1, 1))
+            .global_shape(lluvia_vk::math::UVec3::new(128, 1, 1))
             .add_port(ll::node::PortDescriptor {
                 binding: 0,
                 name: "out0".to_string(),
@@ -395,14 +394,16 @@ mod tests {
 
         // Load the RGBA2Gray node builder from Luau
         let builder = session.load_compute_node_builder("lluvia/color/RGBA2Gray")?;
-        let node_descriptor = builder.get_descriptor()?;
-        let mut compute_node = session.create_compute_node(node_descriptor)?;
+        let mut node_descriptor = builder.get_descriptor()?;
 
         // Load reference input image using image crate
         let input_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/test-data/koala.jpg");
         let img = image::open(&input_path)?;
         let rgba_img = img.to_rgba8();
         let (width, height) = rgba_img.dimensions();
+
+        node_descriptor.global_shape = lluvia_vk::math::UVec3::new(width, height, 1);
+        let mut compute_node = session.create_compute_node(node_descriptor)?;
 
         // Create staging buffers and GPU images
         let img_in_size = (width * height * 4) as u64;
@@ -449,11 +450,6 @@ mod tests {
 
         // Initialize node (calls the Luau builder's on_node_init)
         builder.init_node(&mut compute_node)?;
-
-        // Set the grid shape based on image dimensions and workgroup local shape (32, 32, 1)
-        let grid_x = width.div_ceil(32);
-        let grid_y = height.div_ceil(32);
-        compute_node.set_grid_shape(&lluvia_vk::math::UVec3::new(grid_x, grid_y, 1));
 
         // Create staging buffer for the output single-channel image
         let img_out_size = (width * height) as u64;

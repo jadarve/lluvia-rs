@@ -53,8 +53,7 @@ declare function PushConstants(): PushConstants
 -----------------------------------------------------------
 declare class ComputeNodeDescriptor
     function_name: string
-    local_shape: UVec3
-    grid_shape: UVec3
+    global_shape: UVec3
     program: Program?
 
     function builder(self): ComputeNodeDescriptorBuilder
@@ -68,9 +67,7 @@ declare function ComputeNodeDescriptor(): ComputeNodeDescriptor
 -----------------------------------------------------------
 declare class ComputeNodeDescriptorBuilder
     function function_name(self, name: string): ComputeNodeDescriptorBuilder
-    function local_shape(self, shape: UVec3): ComputeNodeDescriptorBuilder
-    function grid_shape(self, shape: UVec3): ComputeNodeDescriptorBuilder
-    function configure_grid_shape(self, global_shape: UVec3): ComputeNodeDescriptorBuilder
+    function global_shape(self, shape: UVec3): ComputeNodeDescriptorBuilder
     function program(self, program: Program?): ComputeNodeDescriptorBuilder
     function add_port(self, desc: PortDescriptor): ComputeNodeDescriptorBuilder
     function add_constant(self, name: string, value: any): ComputeNodeDescriptorBuilder
@@ -85,7 +82,6 @@ declare class ComputeNode
     push_constants: PushConstants?
 
     function get_port(self, name: string): any
-    function configure_grid_shape(self, shape: UVec3): nil
     function set_constant(self, name: string, value: any): nil
     function get_constant(self, name: string): any
 end

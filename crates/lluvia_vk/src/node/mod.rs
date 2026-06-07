@@ -38,9 +38,6 @@ pub enum ComputeNodeError {
     #[error("Invalid function name")]
     InvalidFunctionName,
 
-    #[error("Invalid local shape: all components must be > 0")]
-    InvalidLocalShape,
-
     #[error("Invalid port direction: {0}")]
     InvalidPortDirection(u32),
 
