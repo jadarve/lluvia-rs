@@ -7,6 +7,7 @@ use thiserror::Error;
 use vulkano::command_buffer::AutoCommandBufferBuilder;
 use vulkano::command_buffer::PrimaryAutoCommandBuffer;
 
+mod argument;
 mod compute_node;
 mod compute_node_descriptor;
 mod constant;
@@ -14,6 +15,7 @@ mod node_port;
 mod node_type;
 mod port_descriptor;
 
+pub use argument::*;
 pub use compute_node::*;
 pub use compute_node_descriptor::*;
 pub use constant::*;

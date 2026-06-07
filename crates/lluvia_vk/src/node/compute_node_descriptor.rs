@@ -4,6 +4,7 @@ use bon::Builder;
 use std::collections::HashMap;
 
 use crate::math;
+use crate::node::Argument;
 use crate::program::Program;
 
 use super::ComputeNodeError;
@@ -26,6 +27,9 @@ pub struct ComputeNodeDescriptor {
     #[builder(field)]
     pub constants: HashMap<String, Constant>,
 
+    #[builder(field)]
+    pub arguments: HashMap<String, Argument>,
+
     pub global_shape: math::UVec3,
 
     #[builder(into)]
@@ -47,6 +51,12 @@ impl<State: compute_node_descriptor_builder::State> ComputeNodeDescriptorBuilder
         self.constants.insert(name.into(), value);
         self
     }
+
+    /// Adds an argument.
+    pub fn add_argument(mut self, name: impl Into<String>, value: impl Into<Argument>) -> Self {
+        self.arguments.insert(name.into(), value.into());
+        self
+    }
 }
 
 impl ComputeNodeDescriptor {
@@ -66,6 +76,10 @@ impl ComputeNodeDescriptor {
         self.constants
             .get(name)
             .ok_or_else(|| ComputeNodeError::ConstantNotFound(name.to_string()))
+    }
+
+    pub fn set_argument(&mut self, name: impl Into<String>, value: impl Into<Argument>) {
+        self.arguments.insert(name.into(), value.into());
     }
 
     pub(super) fn validate(&self) -> Result<(), ComputeNodeError> {
