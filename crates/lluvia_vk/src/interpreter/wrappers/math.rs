@@ -57,3 +57,26 @@ impl mlua::UserData for math::UVec3 {
         );
     }
 }
+
+///////////////////////////////////////////////////////////
+impl mlua::UserData for math::UVec2 {
+    fn add_fields<F: mlua::prelude::LuaUserDataFields<Self>>(fields: &mut F) {
+        fields.add_field_method_get("x", |_, this| Ok(this.inner.x));
+        fields.add_field_method_get("y", |_, this| Ok(this.inner.y));
+        fields.add_field_method_set("x", |_, this, x| {
+            this.inner.x = x;
+            Ok(())
+        });
+        fields.add_field_method_set("y", |_, this, y| {
+            this.inner.y = y;
+            Ok(())
+        });
+    }
+
+    fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {
+        // corresponds to UVec2(x, y) function in native.d.luau
+        methods.add_meta_function(mlua::MetaMethod::Call, |_, (_self, x, y): (mlua::Value, u32, u32)| {
+            Ok(math::UVec2::new(x, y))
+        });
+    }
+}

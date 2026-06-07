@@ -2,23 +2,38 @@
 
 local ll = require("@lib/ll.luau")
 
+type AssignArguments = {
+	length: number,
+}
+
 local builder: ll.ComptueNodeBuidler = {
 	name = "assign",
 	description = [[
         This is a simple compute node that assigns the index of the element to the element.
         It is intended to be used as a simple test case for the node system.
+
+		Arguments
+		---------
+
+		length: u32, required
+		  Length of the buffer to process
     ]],
 
-	new_descriptor = function()
+	build_descriptor = function(self, args: Arguments)
+		-- reinterpret arguments
+		local parsed_args = args :: AssignArguments
+
+		-- TODO: Still need to make sure parse_args actually contains length
+
 		local desc = ll.ComputeNodeDescriptorBuilder()
 			:function_name("main")
-			:global_shape(UVec3(128, 1, 1))
+			:global_shape(UVec3(parsed_args.length, 1, 1))
 			:program(ll.load_program("lluvia/assign/assign.spv"))
 			:add_port(PortDescriptor(0, "out_buffer", ll.PortDirection.Out, ll.PortType.Buffer))
 			:add_constant("offset", 0.0)
 			:build()
 
-		ll:log_info("assign.new_descriptor(): finish")
+		ll:log_info("assign.build_descriptor(): finish")
 
 		return desc
 	end,

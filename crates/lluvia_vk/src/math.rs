@@ -1,3 +1,4 @@
+///////////////////////////////////////////////////////////////////////////////
 /// Floating point 3D vector
 #[derive(Clone, Copy, Default, Debug)]
 pub struct Vec3 {
@@ -42,6 +43,62 @@ impl From<&Vec3> for Vec3 {
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////
+/// Unsigned integer 2D vector
+#[derive(Clone, Copy, Default, Debug)]
+pub struct UVec2 {
+    pub inner: glam::UVec2,
+}
+
+impl UVec2 {
+    pub const ZERO: Self = Self {
+        inner: glam::UVec2::ZERO,
+    };
+
+    pub const ONE: Self = Self {
+        inner: glam::UVec2::ONE,
+    };
+
+    pub fn new(x: u32, y: u32) -> Self {
+        Self {
+            inner: glam::UVec2::new(x, y),
+        }
+    }
+
+    pub fn x(&self) -> u32 {
+        self.inner.x
+    }
+
+    pub fn y(&self) -> u32 {
+        self.inner.y
+    }
+}
+
+impl std::fmt::Display for UVec2 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {})", self.x(), self.y())
+    }
+}
+
+impl From<&UVec2> for UVec2 {
+    fn from(v: &UVec2) -> Self {
+        *v
+    }
+}
+
+impl From<(u32, u32)> for UVec2 {
+    fn from(v: (u32, u32)) -> Self {
+        Self::new(v.0, v.1)
+    }
+}
+
+impl From<&(u32, u32)> for UVec2 {
+    fn from(v: &(u32, u32)) -> Self {
+        Self::new(v.0, v.1)
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
 /// Unsigned integer 3D vector
 #[derive(Clone, Copy, Default, Debug)]
 pub struct UVec3 {

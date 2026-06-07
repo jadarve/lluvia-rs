@@ -9,6 +9,14 @@ end
 declare function Vec3(x: number, y: number, z: number): Vec3
 
 -----------------------------------------------------------
+declare class UVec2
+    x: number
+    y: number
+end
+
+declare function UVec2(x: number, y: number): UVec2
+
+-----------------------------------------------------------
 declare class UVec3
     x: number
     y: number
@@ -90,3 +98,7 @@ declare class Session
 end
 
 
+
+-----------------------------------------------------------
+export type Argument = number | boolean | Vec3 | UVec3 | UVec2
+export type Arguments = { [string]: Argument }

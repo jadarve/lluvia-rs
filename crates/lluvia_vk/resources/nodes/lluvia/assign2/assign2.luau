@@ -9,7 +9,7 @@ local builder: ll.ComptueNodeBuidler = {
         It uses the new ComputeNodeDescriptorBuilder.
     ]],
 
-	new_descriptor = function()
+	build_descriptor = function(self, args: Arguments)
 		local desc = ll.ComputeNodeDescriptorBuilder()
 			:function_name("main")
 			:global_shape(UVec3(128, 1, 1))
@@ -18,7 +18,7 @@ local builder: ll.ComptueNodeBuidler = {
 			:add_constant("offset", 0.0)
 			:build()
 
-		ll:log_info("assign2.new_descriptor(): finish")
+		ll:log_info("assign2.build_descriptor(): finish")
 
 		return desc
 	end,

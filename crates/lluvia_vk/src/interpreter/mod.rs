@@ -40,6 +40,12 @@ fn register_native_types(globals: &mlua::Table) -> Result<(), InterpreterError> 
         })?;
 
     globals
+        .set("UVec2", math::UVec2::default())
+        .map_err(|e| InterpreterError::RuntimeError {
+            msg: format!("Error registering UVec2: {e:?}"),
+        })?;
+
+    globals
         .set("PushConstants", crate::node::PushConstants::default())
         .map_err(|e| InterpreterError::RuntimeError {
             msg: format!("Error registering PushConstants: {e:?}"),
@@ -116,9 +122,46 @@ pub struct LuauComputeNodeBuilder {
 }
 
 impl crate::node::ComputeNodeBuilder for LuauComputeNodeBuilder {
-    fn get_descriptor(&self) -> Result<crate::node::ComputeNodeDescriptor, crate::node::ComputeNodeBuilderError> {
+    fn build_descriptor(
+        &self,
+        args: std::collections::HashMap<String, crate::node::Argument>,
+    ) -> Result<crate::node::ComputeNodeDescriptor, crate::node::ComputeNodeBuilderError> {
         let interpreter = self.interpreter.lock().unwrap();
         let lua = &interpreter.lua;
+
+        let lua_args = lua
+            .create_table()
+            .map_err(|e| crate::node::ComputeNodeBuilderError::RuntimeError {
+                msg: format!("Failed to create Lua table for arguments: {e}"),
+            })?;
+
+        for (k, v) in args {
+            let lua_val = match v {
+                crate::node::Argument::F32(x) => mlua::Value::Number(x as f64),
+                crate::node::Argument::I32(x) => mlua::Value::Integer(x as i64),
+                crate::node::Argument::Bool(x) => mlua::Value::Boolean(x),
+                crate::node::Argument::Vec3(x) => lua.create_userdata(x).map(mlua::Value::UserData).map_err(|e| {
+                    crate::node::ComputeNodeBuilderError::RuntimeError {
+                        msg: format!("Failed to wrap Vec3: {e}"),
+                    }
+                })?,
+                crate::node::Argument::UVec3(x) => lua.create_userdata(x).map(mlua::Value::UserData).map_err(|e| {
+                    crate::node::ComputeNodeBuilderError::RuntimeError {
+                        msg: format!("Failed to wrap UVec3: {e}"),
+                    }
+                })?,
+                crate::node::Argument::UVec2(x) => lua.create_userdata(x).map(mlua::Value::UserData).map_err(|e| {
+                    crate::node::ComputeNodeBuilderError::RuntimeError {
+                        msg: format!("Failed to wrap UVec2: {e}"),
+                    }
+                })?,
+            };
+            lua_args
+                .set(k, lua_val)
+                .map_err(|e| crate::node::ComputeNodeBuilderError::RuntimeError {
+                    msg: format!("Failed to set Lua table field: {e}"),
+                })?;
+        }
 
         let builder_table: mlua::Table = lua.registry_value(&self.builder_table_key).map_err(|e| {
             crate::node::ComputeNodeBuilderError::RuntimeError {
@@ -126,17 +169,17 @@ impl crate::node::ComputeNodeBuilder for LuauComputeNodeBuilder {
             }
         })?;
 
-        let new_descriptor_fn: mlua::Function =
+        let build_descriptor_fn: mlua::Function =
             builder_table
-                .get("new_descriptor")
+                .get("build_descriptor")
                 .map_err(|e| crate::node::ComputeNodeBuilderError::RuntimeError {
-                    msg: format!("new_descriptor function not found on builder table: {e}"),
+                    msg: format!("build_descriptor function not found on builder table: {e}"),
                 })?;
 
-        let descriptor_ref: mlua::UserDataRef<crate::node::ComputeNodeDescriptor> = new_descriptor_fn
-            .call((builder_table.clone(),))
+        let descriptor_ref: mlua::UserDataRef<crate::node::ComputeNodeDescriptor> = build_descriptor_fn
+            .call((builder_table.clone(), lua_args))
             .map_err(|e| crate::node::ComputeNodeBuilderError::RuntimeError {
-                msg: format!("new_descriptor call failed: {e}"),
+                msg: format!("build_descriptor call failed: {e}"),
             })?;
 
         Ok(descriptor_ref.clone())

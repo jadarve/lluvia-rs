@@ -60,7 +60,9 @@ mod tests {
 
     impl ll::node::ComputeNodeBuilder2 for MyScriptableNode {
         fn build_descriptor(&mut self) -> Result<&mut Self, ll::node::ComputeNodeBuilderError> {
-            self.descriptor = Some(self.inner.get_descriptor()?);
+            let mut args = std::collections::HashMap::new();
+            args.insert("length".to_string(), ll::node::Argument::I32(128));
+            self.descriptor = Some(self.inner.build_descriptor(args)?);
             Ok(self)
         }
 

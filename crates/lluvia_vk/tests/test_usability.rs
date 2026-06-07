@@ -1,7 +1,12 @@
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use anyhow::Result;
-    use lluvia_vk::{self as ll, node::Node};
+    use lluvia_vk::{
+        self as ll, math,
+        node::{Argument, Node},
+    };
 
     #[cfg(test)]
     mod vs {
@@ -140,15 +145,13 @@ mod tests {
         let device_buffer = session.create_buffer_device_local(BUFFER_SIZE)?;
         let staging_buffer = session.create_buffer_host_visible(BUFFER_SIZE)?;
 
+        let args: HashMap<String, ll::node::Argument> =
+            HashMap::from([("length".to_string(), i32::try_from(LENGTH)?.into())]);
+
         let builder = session.load_compute_node_builder("lluvia/assign")?;
 
-        // instead of calling node_descriptor.global_shape = ll::math::UVec3::new(LENGTH as u32, 1, 1);
-        // after the descriptor is built, I could padd LENGTH as argument here,
-        // which will be passed to Luau build descriptor function.
-        let mut node_descriptor = builder.get_descriptor()?;
-
-        // the global shape of the node must be known before creating the node.
-        node_descriptor.global_shape = ll::math::UVec3::new(LENGTH as u32, 1, 1);
+        // Create the descriptor given the arguments.
+        let node_descriptor = builder.build_descriptor(args)?;
 
         // once the descriptor is passed to session.create_compute_node, the descriptor cannot be
         // changed anymore.
@@ -190,7 +193,7 @@ mod tests {
 
         let builder = session.load_compute_node_builder("lluvia/assign2")?;
 
-        let node_descriptor = builder.get_descriptor()?;
+        let node_descriptor = builder.build_descriptor(std::collections::HashMap::new())?;
         let mut compute_node = session.create_compute_node(node_descriptor)?;
 
         let device_buffer = session.create_buffer_device_local(512)?;
@@ -241,7 +244,9 @@ mod tests {
 
     impl ll::node::ComputeNodeBuilder2 for MyScriptableNode {
         fn build_descriptor(&mut self) -> Result<&mut Self, ll::node::ComputeNodeBuilderError> {
-            self.descriptor = Some(self.inner.get_descriptor()?);
+            let mut args = std::collections::HashMap::new();
+            args.insert("length".to_string(), ll::node::Argument::I32(128));
+            self.descriptor = Some(self.inner.build_descriptor(args)?);
             Ok(self)
         }
 
@@ -392,17 +397,19 @@ mod tests {
     fn test_rgba2gray() -> Result<()> {
         let session = ll::Session::new(ll::SessionDescriptor::default())?;
 
-        // Load the RGBA2Gray node builder from Luau
-        let builder = session.load_compute_node_builder("lluvia/color/RGBA2Gray")?;
-        let mut node_descriptor = builder.get_descriptor()?;
-
         // Load reference input image using image crate
         let input_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/test-data/koala.jpg");
         let img = image::open(&input_path)?;
         let rgba_img = img.to_rgba8();
         let (width, height) = rgba_img.dimensions();
 
-        node_descriptor.global_shape = lluvia_vk::math::UVec3::new(width, height, 1);
+        // arguments to the builder
+        let args: HashMap<String, Argument> =
+            HashMap::from([("resolution".to_string(), math::UVec2::new(width, height).into())]);
+
+        // Load the RGBA2Gray node builder from Luau
+        let builder = session.load_compute_node_builder("lluvia/color/RGBA2Gray")?;
+        let node_descriptor = builder.build_descriptor(args)?;
         let mut compute_node = session.create_compute_node(node_descriptor)?;
 
         // Create staging buffers and GPU images

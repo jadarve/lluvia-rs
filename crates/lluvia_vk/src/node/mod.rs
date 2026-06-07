@@ -90,7 +90,10 @@ pub enum ComputeNodeBuilderError {
 /// Trait for compute node builders, mirroring C++ and Luau builders.
 pub trait ComputeNodeBuilder: Send {
     /// Returns the node descriptor configured by the builder.
-    fn get_descriptor(&self) -> Result<ComputeNodeDescriptor, ComputeNodeBuilderError>;
+    fn build_descriptor(
+        &self,
+        args: std::collections::HashMap<String, Argument>,
+    ) -> Result<ComputeNodeDescriptor, ComputeNodeBuilderError>;
 
     /// Initializes the compute node (e.g., configures its grid shape or other state based on bound ports).
     fn init_node(&self, node: &mut ComputeNode) -> Result<(), ComputeNodeError>;

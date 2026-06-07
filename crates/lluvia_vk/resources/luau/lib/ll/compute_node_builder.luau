@@ -4,8 +4,7 @@ export type ComputeNodeBuilder = {
 	name: string,
 	description: string,
 
-	-- TODO: I could add template argumentts
-	new_descriptor: (self: ComputeNodeBuilder) -> ComputeNodeDescriptor,
+	build_descriptor: (self: ComputeNodeBuilder, args: Arguments) -> ComputeNodeDescriptor,
 
 	-- TODO: receive the ComputeNode. Return something?
 	on_node_init: (self: ComputeNodeBuilder, node: ComputeNode) -> nil,

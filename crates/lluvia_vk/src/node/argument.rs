@@ -7,6 +7,7 @@ pub enum Argument {
     Bool(bool),
     Vec3(math::Vec3),
     UVec3(math::UVec3),
+    UVec2(math::UVec2),
 }
 
 impl From<f32> for Argument {
@@ -36,5 +37,11 @@ impl From<math::Vec3> for Argument {
 impl From<math::UVec3> for Argument {
     fn from(value: math::UVec3) -> Self {
         Argument::UVec3(value)
+    }
+}
+
+impl From<math::UVec2> for Argument {
+    fn from(value: math::UVec2) -> Self {
+        Argument::UVec2(value)
     }
 }
