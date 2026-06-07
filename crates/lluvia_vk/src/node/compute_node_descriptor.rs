@@ -14,6 +14,14 @@ use super::port_descriptor::PortDescriptor;
 // ComputeNodeDescriptor
 // ---------------------------------------------------------------------------
 
+#[derive(Clone, Copy, Debug)]
+#[repr(u32)]
+pub enum ComputeDimensions {
+    ONE,
+    TWO,
+    THREE,
+}
+
 /// Descriptor used to build a [`ComputeNode`](super::ComputeNode).
 ///
 /// Mirrors C++ `ll::ComputeNodeDescriptor`.
@@ -31,6 +39,9 @@ pub struct ComputeNodeDescriptor {
     #[builder(field = math::UVec3::ONE)]
     pub grid_shape: math::UVec3,
 
+    #[builder(default = ComputeDimensions::ONE)]
+    pub dimensions: ComputeDimensions,
+
     #[builder(into)]
     pub program: Option<Program>,
 
@@ -45,6 +56,7 @@ impl Default for ComputeNodeDescriptor {
             function_name: "main".to_string(),
             local_shape: math::UVec3::ONE,
             grid_shape: math::UVec3::ONE,
+            dimensions: ComputeDimensions::ONE,
             ports: Vec::new(),
             constants: HashMap::new(),
         }
@@ -120,6 +132,7 @@ impl ComputeNodeDescriptor {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     fn descriptor_without_program() -> ComputeNodeDescriptor {
@@ -149,6 +162,7 @@ mod tests {
         let val = Constant::Int(42);
 
         let desc = ComputeNodeDescriptor::builder()
+            .dimensions(ComputeDimensions::ONE)
             .add_port(port)
             .add_constant("my_const", val)
             .build();
@@ -164,6 +178,7 @@ mod tests {
         let global = math::UVec3::new(17, 9, 5);
 
         let desc = ComputeNodeDescriptor::builder()
+            .dimensions(ComputeDimensions::ONE)
             .local_shape(&local)
             .configure_grid_shape(&global)
             .build();
@@ -180,6 +195,7 @@ mod tests {
         let global = math::UVec3::new(8, 8, 8);
 
         let desc = ComputeNodeDescriptor::builder()
+            .dimensions(ComputeDimensions::ONE)
             .local_shape(&local)
             .configure_grid_shape(&global)
             .build();
