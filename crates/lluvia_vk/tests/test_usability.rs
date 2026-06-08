@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
     use std::collections::HashMap;
 
     use anyhow::Result;
@@ -446,8 +447,10 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_rgba2gray() -> Result<()> {
+    #[rstest]
+    #[case("lluvia/color/RGBA2Gray", "output_koala_gray.jpg")]
+    #[case("lluvia/color/RGBA2Gray_slang", "output_koala_gray_slang.jpg")]
+    fn test_rgba2gray(#[case] builder_name: &str, #[case] output_filename: &str) -> Result<()> {
         let session = ll::Session::new(ll::SessionDescriptor::default())?;
 
         // Load reference input image using image crate
@@ -460,8 +463,8 @@ mod tests {
         let args: HashMap<String, Argument> =
             HashMap::from([("resolution".to_string(), math::UVec2::new(width, height).into())]);
 
-        // Load the RGBA2Gray node builder from Luau
-        let builder = session.load_compute_node_builder("lluvia/color/RGBA2Gray")?;
+        // Load the node builder from Luau
+        let builder = session.load_compute_node_builder(builder_name)?;
         let node_descriptor = builder.build_descriptor(args)?;
         let mut compute_node = session.create_compute_node(node_descriptor)?;
 
@@ -529,8 +532,9 @@ mod tests {
         let gray_image = image::GrayImage::from_raw(width, height, out_data)
             .ok_or_else(|| anyhow::anyhow!("Failed to construct output GrayImage"))?;
 
-        let output_path =
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/test-data/output_koala_gray.jpg");
+        let output_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/test-data/")
+            .join(output_filename);
         gray_image.save(&output_path)?;
 
         assert!(output_path.exists());

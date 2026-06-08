@@ -30,4 +30,5 @@ vulkano = { workspace = true }
 [dev-dependencies]
 anyhow = { workspace = true }
 image = { workspace = true }
+rstest = { workspace = true }
 vulkano-shaders = { workspace = true }

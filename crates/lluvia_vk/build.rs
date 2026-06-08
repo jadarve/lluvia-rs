@@ -30,6 +30,9 @@ fn compile_shaders(dir: &Path) {
         let path = entry.path();
 
         if path.is_dir() {
+            if path.ends_with("resources/slang") || path.ends_with("resources/glsl") {
+                continue;
+            }
             compile_shaders(&path);
         } else if path.extension().is_some_and(|ext| ext == "comp") {
             let mut spv_path = path.clone();
@@ -51,7 +54,11 @@ fn compile_shaders(dir: &Path) {
             let mut spv_path = path.clone();
             spv_path.set_extension("spv");
 
+            let include_slang_dir = Path::new(&manifest_dir).join("resources/slang");
+
             let status = Command::new("slangc")
+                .arg("-I")
+                .arg(&include_slang_dir)
                 .arg(&path)
                 .arg("-o")
                 .arg(&spv_path)
