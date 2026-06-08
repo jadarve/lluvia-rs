@@ -10,12 +10,10 @@ impl CommandEncoder {
     }
 
     pub async fn run_compute_node(&mut self, compute_node: &ComputeNode) {
-        let mut cpass = self
-            .handle
-            .begin_compute_pass(&wgpu::ComputePassDescriptor {
-                label: Some("compute_pass"),
-                timestamp_writes: None,
-            });
+        let mut cpass = self.handle.begin_compute_pass(&wgpu::ComputePassDescriptor {
+            label: Some("compute_pass"),
+            timestamp_writes: None,
+        });
 
         cpass.set_pipeline(&compute_node.handle);
 

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "command(cargo build)",
+      "command(cargo test)",
+      "command(cargo fmt)",
+      "command(cargo fmt --all)",
+      "command(cargo clippy)",
+      "command(cargo clippy --workspace --all-targets --all-features -- -D warnings)"
+    ]
+  }
+}

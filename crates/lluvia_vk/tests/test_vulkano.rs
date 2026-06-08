@@ -24,13 +24,23 @@ mod tests {
         assert!(!physical_devices.is_empty(), "no Vulkan-capable devices found");
 
         for device in &physical_devices {
-            let props = device.properties();
-            println!("Device: {}", props.device_name);
-            println!("  Type: {:?}", props.device_type);
+            let properties = device.properties();
+            // println!("Device: {}", props.device_name);
+            // println!("  Type: {:?}", props.device_type);
 
-            let extensions = device.supported_extensions();
-            println!("  Supported extensions:\n{:#?}", extensions);
-            println!();
+            // let extensions = device.supported_extensions();
+            // println!("  Supported extensions:\n{:#?}", extensions);
+            // println!();
+
+            // Get subgroup size (typically 32 or 64; default to 32 if None)
+            let subgroup_size = properties.subgroup_size.unwrap_or(32);
+            println!("  Subgroup size: {}", subgroup_size);
+
+            // Get the maximum allowed workgroup size dimensions and invocations
+            let max_invocations = properties.max_compute_work_group_invocations;
+            let max_workgroup_size = properties.max_compute_work_group_size; // [u32; 3]
+            println!("  Max invocations: {}", max_invocations);
+            println!("  Max workgroup size: {:?}", max_workgroup_size);
         }
 
         println!("Total devices found: {}", physical_devices.len());

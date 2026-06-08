@@ -21,9 +21,9 @@ bitflags::bitflags! {
     }
 }
 
-impl Into<wgpu::BufferUsages> for BufferUsages {
-    fn into(self) -> wgpu::BufferUsages {
-        wgpu::BufferUsages::from_bits(self.bits()).unwrap()
+impl From<BufferUsages> for wgpu::BufferUsages {
+    fn from(val: BufferUsages) -> Self {
+        wgpu::BufferUsages::from_bits(val.bits()).unwrap()
     }
 }
 

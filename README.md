@@ -19,7 +19,17 @@ Python config
 ```bash
 pyenv virtualenv 3.12.9 lluvia-rs
 pyenv activate lluvia-rs
-pip install maturin
+pip install maturin patchelf
+
+cd bindings/python/pyo3-lluvia-vk
+maturin develop
+
+# run python
+python3
+
+# inside interpreter
+import lluvia_vk as ll
+session = ll.Session(True)
 ```
 
 ## Generate sample data

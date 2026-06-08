@@ -13,7 +13,7 @@ pub struct PacketView {
 
 impl PacketView {
     pub fn new(data: bytes::Bytes) -> Self {
-        PacketView { data: data }
+        PacketView { data }
     }
 
     pub fn sync_byte(&self) -> u8 {
@@ -56,20 +56,16 @@ impl PacketView {
 
         match (adaptation_field_control, adaptation_field_length) {
             // the only allowed length for AdaptationFieldOnly is 183
-            (AdaptationFieldControl::AdaptationFieldOnly, 183) => {
-                Ok(AdaptationFieldView::new(self.data.slice(4..)))
-            }
+            (AdaptationFieldControl::AdaptationFieldOnly, 183) => Ok(AdaptationFieldView::new(self.data.slice(4..))),
             // any other length is invalid
-            (AdaptationFieldControl::AdaptationFieldOnly, _) => {
-                Err(TsError::InvalidAdaptationFieldLength(
-                    adaptation_field_control,
-                    adaptation_field_length as u8,
-                ))
-            }
+            (AdaptationFieldControl::AdaptationFieldOnly, _) => Err(TsError::InvalidAdaptationFieldLength(
+                adaptation_field_control,
+                adaptation_field_length as u8,
+            )),
             // if there is adaptation field and payload, the length must be between 0 and 182 inclusive
-            (AdaptationFieldControl::AdaptationFieldAndPayload, 0..=182) => Ok(
-                AdaptationFieldView::new(self.data.slice(4..4 + adaptation_field_length + 1)),
-            ),
+            (AdaptationFieldControl::AdaptationFieldAndPayload, 0..=182) => Ok(AdaptationFieldView::new(
+                self.data.slice(4..4 + adaptation_field_length + 1),
+            )),
             _ => Err(TsError::NoAdaptationField),
         }
     }
@@ -125,20 +121,11 @@ impl std::fmt::Debug for PacketView {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let mut w = f.debug_struct("PacketView");
         w.field("sync_byte", &self.sync_byte())
-            .field(
-                "transport_error_indicator",
-                &self.transport_error_indicator(),
-            )
-            .field(
-                "payload_unit_start_indicator",
-                &self.payload_unit_start_indicator(),
-            )
+            .field("transport_error_indicator", &self.transport_error_indicator())
+            .field("payload_unit_start_indicator", &self.payload_unit_start_indicator())
             .field("transport_priority", &self.transport_priority())
             .field("pid", &self.pid())
-            .field(
-                "transport_scrambling_control",
-                &self.transport_scrambling_control(),
-            );
+            .field("transport_scrambling_control", &self.transport_scrambling_control());
 
         let adaptation_field_control = self.adaptation_field_control();
         w.field("adaptation_field_control", &adaptation_field_control)
@@ -212,9 +199,7 @@ impl AdaptationFieldView {
         if self.length() > 0 {
             Ok((self.data[1] & 0b0001_0000) != 0)
         } else {
-            Err(TsError::EmptyAdaptationField(
-                "attempting to read PCR flag".to_string(),
-            ))
+            Err(TsError::EmptyAdaptationField("attempting to read PCR flag".to_string()))
         }
     }
 
@@ -272,10 +257,7 @@ impl std::fmt::Debug for AdaptationFieldView {
             .field("pcr_flag", &self.pcr_flag())
             .field("opcr_flag", &self.opcr_flag())
             .field("splicing_point_flag", &self.splicing_point_flag())
-            .field(
-                "transport_private_data_flag",
-                &self.transport_private_data_flag(),
-            )
+            .field("transport_private_data_flag", &self.transport_private_data_flag())
             .field(
                 "adaptation_field_extension_flag",
                 &self.adaptation_field_extension_flag(),

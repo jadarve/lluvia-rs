@@ -68,9 +68,7 @@ fn main(
             .size(1024 * std::mem::size_of::<f32>())
             .usage(llgpu::BufferUsages::COPY_DST | llgpu::BufferUsages::MAP_READ)
             .build();
-        let staging_buffer = session
-            .create_buffer_from_descriptor(&staging_buffer_desc)
-            .await?;
+        let staging_buffer = session.create_buffer_from_descriptor(&staging_buffer_desc).await?;
 
         compute_node.bind("outputBuffer", &buffer).await;
 
@@ -78,9 +76,7 @@ fn main(
         let mut command_encoder = session.create_command_encoder();
 
         command_encoder.run_compute_node(&compute_node).await;
-        command_encoder
-            .copy_buffer_to_buffer(&buffer, &staging_buffer)
-            .await;
+        command_encoder.copy_buffer_to_buffer(&buffer, &staging_buffer).await;
 
         // run the node
         let command_buffer = command_encoder.finish();

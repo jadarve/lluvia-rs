@@ -1,26 +1,38 @@
 [workspace]
 resolver = "2"
-members = ["crates/lluvia_gpu", "crates/lluvia_media", "crates/lluvia_webgpu"]
+members = [
+    "crates/lluvia_vk",
+    "crates/lluvia_media",
+    "crates/lluvia_webgpu",
+    "bindings/python/pyo3-lluvia-vk",
+]
 
 
 ###########################################################
 # Dependencies
 [workspace.dependencies]
-tokio = { version = "1.50.0" }
 anyhow = { version = "1.0.102" }
-bitflags = { version = "2.11.0" }
-bon = { version = "3.9.0" }
+bitflags = { version = "2.13.0" }
+bon = { version = "3.9.1" }
+image = { version = "0.25.5" }
 bytemuck = { version = "1.25.0" }
 bytes = { version = "1.11.1" }
-clap = { version = "4.5.60" }
+clap = { version = "4.6.1" }
 flume = { version = "0.12.0" }
+foldhash = { version = "0.1.5" }
+glam = { version = "0.33.1" }
+include_dir = { version = "0.7.0" }
+mlua = { version = "0.11.6" }
 pollster = { version = "0.4.0" }
+pyo3 = { version = "0.28.3", features = ["extension-module", "anyhow"] }
 rstest = { version = "0.26.1" }
 thiserror = { version = "2.0.18" }
-tokio-macros = { version = "~2.6.1" }
-wgpu = { version = "28.0.0" }
+tokio = { version = "1.52.3" }
+tokio-macros = { version = "~2.7.0" }
 vulkano = { version = "0.35.2" }
+vulkano-shaders = { version = "0.35.0" }
+wgpu = { version = "29.0.3" }
 
-wasm-bindgen = "0.2.114"
-wasm-bindgen-futures = "0.4.64"
-wasm-bindgen-test = "0.3.64"
+wasm-bindgen = "0.2.122"
+wasm-bindgen-futures = "0.4.72"
+wasm-bindgen-test = "0.3.72"

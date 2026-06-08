@@ -3,8 +3,8 @@ use std::panic::RefUnwindSafe;
 use thiserror::Error;
 
 use crate::{
-    Buffer, BufferDescriptor, BufferUsages, ComputeNode, ComputeNodeDescriptor, LluviaGpuError,
-    ShaderCode, ShaderModule, ShaderModuleDescriptor,
+    Buffer, BufferDescriptor, BufferUsages, ComputeNode, ComputeNodeDescriptor, LluviaGpuError, ShaderCode,
+    ShaderModule, ShaderModuleDescriptor,
 };
 
 #[derive(Error, Debug)]
@@ -62,11 +62,9 @@ impl Session {
     ///////////////////////////////////////////////////////////////////////////
     // Command encoder
     pub fn create_command_encoder(&self) -> crate::CommandEncoder {
-        let handle = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("command_encoder"),
-            });
+        let handle = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("command_encoder"),
+        });
 
         crate::CommandEncoder::new(handle)
     }
@@ -97,10 +95,7 @@ impl Session {
         Buffer { handle }
     }
 
-    pub async fn create_buffer_from_descriptor(
-        &self,
-        desc: &BufferDescriptor,
-    ) -> Result<Buffer, LluviaGpuError> {
+    pub async fn create_buffer_from_descriptor(&self, desc: &BufferDescriptor) -> Result<Buffer, LluviaGpuError> {
         let error_scope = self.device.push_error_scope(wgpu::ErrorFilter::Validation);
         let handle = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: desc.label.as_deref(),
@@ -124,9 +119,7 @@ impl Session {
         let (sender, receiver) = flume::bounded(1);
         buffer_slice.map_async(wgpu::MapMode::Read, move |r| sender.send(r).unwrap());
 
-        self.device
-            .poll(wgpu::PollType::wait_indefinitely())
-            .unwrap();
+        self.device.poll(wgpu::PollType::wait_indefinitely()).unwrap();
 
         if let Ok(Ok(())) = receiver.recv_async().await {
             let data = {
@@ -154,45 +147,39 @@ impl Session {
 
         let wgpu_handle = self.device.create_shader_module(wgpu_desc);
 
-        ShaderModule {
-            handle: wgpu_handle,
-        }
+        ShaderModule { handle: wgpu_handle }
     }
 
     ///////////////////////////////////////////////////////////////////////////
     // Compute Node
 
     pub fn create_compute_node(&self, desc: &ComputeNodeDescriptor) -> ComputeNode {
-        let binding_group_layout =
-            self.device
-                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                    label: desc.label.as_deref(),
-                    entries: &desc
-                        .ports
-                        .iter()
-                        .map(|port| port.into())
-                        .collect::<Vec<wgpu::BindGroupLayoutEntry>>(),
-                });
+        let binding_group_layout = self.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: desc.label.as_deref(),
+            entries: &desc
+                .ports
+                .iter()
+                .map(|port| port.into())
+                .collect::<Vec<wgpu::BindGroupLayoutEntry>>(),
+        });
 
         // layout
         let layout_desc = wgpu::PipelineLayoutDescriptor {
             label: Some("compute_pipeline_layout"),
-            bind_group_layouts: &[&binding_group_layout],
+            bind_group_layouts: &[Some(&binding_group_layout)],
             immediate_size: 0,
         };
 
         let pipeline_layout = self.device.create_pipeline_layout(&layout_desc);
 
-        let compute_pipeline =
-            self.device
-                .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-                    label: Some("compute_pipeline"),
-                    layout: Some(&pipeline_layout),
-                    module: &desc.shader_module.handle,
-                    entry_point: Some(desc.entry_point.as_str()),
-                    compilation_options: Default::default(),
-                    cache: None,
-                });
+        let compute_pipeline = self.device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+            label: Some("compute_pipeline"),
+            layout: Some(&pipeline_layout),
+            module: &desc.shader_module.handle,
+            entry_point: Some(desc.entry_point.as_str()),
+            compilation_options: Default::default(),
+            cache: None,
+        });
 
         ComputeNode::new(desc, self.device.clone(), compute_pipeline)
 

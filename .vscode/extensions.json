@@ -3,6 +3,10 @@
         "rust-lang.rust-analyzer",
         "tamasfe.even-better-toml",
         "fill-labs.dependi",
-        "vadimcn.vscode-lldb"
+        "vadimcn.vscode-lldb",
+        "JohnnyMorganz.stylua",
+        "JohnnyMorganz.luau-lsp",
+        "antaalt.shader-validator",
+        "shader-slang.slang-language-extension",
     ]
 }

@@ -68,11 +68,7 @@ pub struct ComputeNode {
 }
 
 impl ComputeNode {
-    pub(crate) fn new(
-        desc: &ComputeNodeDescriptor,
-        device: wgpu::Device,
-        handle: wgpu::ComputePipeline,
-    ) -> Self {
+    pub(crate) fn new(desc: &ComputeNodeDescriptor, device: wgpu::Device, handle: wgpu::ComputePipeline) -> Self {
         Self {
             desc: desc.clone(),
             device,
@@ -95,10 +91,7 @@ impl ComputeNode {
                 panic!("Port with name {} is not a buffer", name);
             }
 
-            self.bindings
-                .lock()
-                .await
-                .insert(name.to_string(), buffer.to_owned());
+            self.bindings.lock().await.insert(name.to_string(), buffer.to_owned());
         }
         // check if the buffer is compatible with the port
     }
@@ -112,12 +105,7 @@ impl ComputeNode {
 
         let bindings = self.bindings.lock().await;
         for (name, buffer) in bindings.iter() {
-            let port_desc = self
-                .desc
-                .ports
-                .iter()
-                .find(|port| port.name == *name)
-                .unwrap(); // FIXME: return error
+            let port_desc = self.desc.ports.iter().find(|port| port.name == *name).unwrap(); // FIXME: return error
 
             let binding = port_desc.binding;
             let resource = buffer.handle.as_entire_binding();
@@ -125,12 +113,10 @@ impl ComputeNode {
             bind_group_entries.push(wgpu::BindGroupEntry { binding, resource });
         }
 
-        let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+        self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("bind_group"),
             layout: &bind_group_layout,
             entries: &bind_group_entries,
-        });
-
-        bind_group
+        })
     }
 }
