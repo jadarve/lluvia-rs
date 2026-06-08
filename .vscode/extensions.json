@@ -7,5 +7,6 @@
         "JohnnyMorganz.stylua",
         "JohnnyMorganz.luau-lsp",
         "antaalt.shader-validator",
+        "shader-slang.slang-language-extension",
     ]
 }

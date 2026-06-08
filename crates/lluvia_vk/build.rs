@@ -47,6 +47,20 @@ fn compile_shaders(dir: &Path) {
             if !status.success() {
                 panic!("Failed to compile shader: {:?}", path);
             }
+        } else if path.extension().is_some_and(|ext| ext == "slang") {
+            let mut spv_path = path.clone();
+            spv_path.set_extension("spv");
+
+            let status = Command::new("slangc")
+                .arg(&path)
+                .arg("-o")
+                .arg(&spv_path)
+                .status()
+                .expect("Failed to execute slangc. Is it installed?");
+
+            if !status.success() {
+                panic!("Failed to compile Slang shader: {:?}", path);
+            }
         }
     }
 }

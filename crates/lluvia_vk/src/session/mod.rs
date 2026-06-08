@@ -132,11 +132,18 @@ impl Session {
             .map(|(index, _)| index as u32)
             .ok_or_else(|| SessionError::RuntimeError("No compute queue family found".to_string()))?;
 
+        // Needed for Slang shaders.
+        let mut enabled_features = vulkano::device::DeviceFeatures::default();
+        if physical_device.supported_features().maintenance4 {
+            enabled_features.maintenance4 = true;
+        }
+
         let device_create_info = DeviceCreateInfo {
             queue_create_infos: vec![QueueCreateInfo {
                 queue_family_index,
                 ..Default::default()
             }],
+            enabled_features,
             ..Default::default()
         };
 

@@ -186,6 +186,59 @@ mod tests {
     }
 
     #[test]
+    fn test_load_assign_slang_node() -> Result<()> {
+        const LENGTH: u64 = 128;
+        const BUFFER_SIZE: u64 = LENGTH * std::mem::size_of::<f32>() as u64;
+        const OFFSET: f32 = 10.0;
+
+        let session_descriptor = ll::SessionDescriptor::default();
+
+        let session = ll::Session::new(session_descriptor)?;
+
+        let device_buffer = session.create_buffer_device_local(BUFFER_SIZE)?;
+        let staging_buffer = session.create_buffer_host_visible(BUFFER_SIZE)?;
+
+        let args: HashMap<String, ll::node::Argument> =
+            HashMap::from([("length".to_string(), i32::try_from(LENGTH)?.into())]);
+
+        let builder = session.load_compute_node_builder("lluvia/assign_slang")?;
+
+        // Create the descriptor given the arguments.
+        let node_descriptor = builder.build_descriptor(args)?;
+
+        // once the descriptor is passed to session.create_compute_node, the descriptor cannot be
+        // changed anymore.
+        let mut compute_node = session.create_compute_node(node_descriptor)?;
+
+        use ll::node::Node;
+        compute_node.bind("out_buffer", ll::node::NodePort::Buffer(device_buffer.clone()))?;
+
+        // Set the offset constant
+        compute_node.set_constant("offset", ll::node::Constant::Float(OFFSET));
+
+        // this is different to Lluvia Cpp. There, the compute_node instance holds the reference to the builder
+        // so that when the node is initialized, the builder is called.
+        // Here the builder and the compute_node are independent.
+        builder.init_node(&mut compute_node)?;
+
+        let mut builder_cb = session.create_command_buffer_builder()?;
+        builder_cb.record_compute_node(&compute_node)?;
+        builder_cb.copy_buffer(device_buffer.clone(), staging_buffer.clone())?;
+
+        let command_buffer = builder_cb.build_command_buffer()?;
+        session.run(command_buffer)?;
+
+        let data = staging_buffer.read();
+        let floats: &[f32] = bytemuck::cast_slice(&data);
+
+        for (i, item) in floats.iter().enumerate() {
+            assert_eq!(*item, i as f32 + 10.0, "index {i}");
+        }
+
+        Ok(())
+    }
+
+    #[test]
     fn test_load_assign2_node() -> Result<()> {
         let session_descriptor = ll::SessionDescriptor::default();
 

@@ -21,3 +21,12 @@
     * Missing docstrings.
     * Missing tests.
 * Luau support
+
+## 2026-06-07
+
+* Added support for Arguments in ComputeNodeBuilder.
+* Builder pattern looks fine for now.
+* Ready to work on Container nodes.
+* Still want to do render nodes.
+* Check dispatching command buffers from different threads to queues.
+* Check Slang shaders
