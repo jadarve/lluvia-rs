@@ -11,6 +11,8 @@ mod argument;
 mod compute_node;
 mod compute_node_descriptor;
 mod constant;
+mod container_node;
+mod container_node_descriptor;
 mod node_port;
 mod node_type;
 mod port_descriptor;
@@ -19,6 +21,8 @@ pub use argument::*;
 pub use compute_node::*;
 pub use compute_node_descriptor::*;
 pub use constant::*;
+pub use container_node::*;
+pub use container_node_descriptor::*;
 pub use node_port::*;
 pub use node_type::*;
 pub use port_descriptor::*;
@@ -71,7 +75,10 @@ pub trait Node {
     fn bind(&mut self, name: &str, obj: NodePort) -> Result<(), ComputeNodeError>;
     fn has_port(&self, name: &str) -> bool;
     fn port(&self, name: &str) -> Option<&NodePort>;
-    fn record(&self, builder: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>) -> Result<(), ComputeNodeError>;
+    fn record(
+        &mut self,
+        builder: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>,
+    ) -> Result<(), ComputeNodeError>;
 
     // FIXME: constant related methods should be declared here
 }
@@ -99,20 +106,14 @@ pub trait ComputeNodeBuilder: Send {
     fn init_node(&self, node: &mut ComputeNode) -> Result<(), ComputeNodeError>;
 }
 
-pub trait ComputeNodeBuilder2: Send + Sized {
-    // Build the descriptor, keep it internally
-    fn build_descriptor(&mut self) -> Result<&mut Self, ComputeNodeBuilderError>;
+/// Trait for container node builders, mirroring C++ and Luau builders.
+pub trait ContainerNodeBuilder: Send {
+    /// Returns the node descriptor configured by the builder.
+    fn build_descriptor(
+        &self,
+        args: std::collections::HashMap<String, Argument>,
+    ) -> Result<ContainerNodeDescriptor, ComputeNodeBuilderError>;
 
-    /// Returns the node descriptor, if not initialized, it calls init_descriptor() first.
-    fn get_descriptor(&mut self) -> Result<ComputeNodeDescriptor, ComputeNodeBuilderError>;
-
-    /// Initializes the compute node (e.g., configures its grid shape or other state based on bound ports).
-    fn init_node(&self, node: &mut ComputeNode) -> Result<(), ComputeNodeError>;
-
-    /// Sets a constant. It can be called after init_descriptor() and before build() is called.
-    fn set_constant(&mut self, name: impl Into<String>, value: Constant) -> Result<&mut Self, ComputeNodeBuilderError>;
-
-    fn bind(&mut self, name: &str, obj: NodePort) -> Result<&mut Self, ComputeNodeBuilderError>;
-
-    fn build(&mut self) -> Result<ComputeNode, ComputeNodeBuilderError>;
+    /// Initializes the container node (e.g., creates sub-nodes, binds internal ports, etc.).
+    fn init_node(&self, node: &mut ContainerNode) -> Result<(), ComputeNodeError>;
 }

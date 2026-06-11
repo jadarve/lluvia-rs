@@ -4,6 +4,7 @@ local ll = require("@lib/ll.luau")
 
 type AssignArguments = {
 	length: number,
+	offset: number?, -- FIXME: nullable properties break Arguments type.
 }
 
 local builder: ll.ComptueNodeBuidler = {
@@ -17,11 +18,16 @@ local builder: ll.ComptueNodeBuidler = {
 
 		length: u32, required
 		  Length of the buffer to process
+
+		offset: f32, optional. Default to 0.0
+		  Offset to the values to assign.
     ]],
 
 	build_descriptor = function(self, args: Arguments)
 		-- reinterpret arguments
 		local parsed_args = args :: AssignArguments
+
+		local offset = parsed_args.offset or 0.0
 
 		-- TODO: Still need to make sure parse_args actually contains length
 
@@ -30,7 +36,7 @@ local builder: ll.ComptueNodeBuidler = {
 			:global_shape(UVec3(parsed_args.length, 1, 1))
 			:program(ll.load_program("lluvia/assign/assign.spv"))
 			:add_port(PortDescriptor(0, "out_buffer", ll.PortDirection.Out, ll.PortType.Buffer))
-			:add_constant("offset", 0.0)
+			:add_constant("offset", offset)
 			:build()
 
 		ll:log_info("assign.build_descriptor(): finish")

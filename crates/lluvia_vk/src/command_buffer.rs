@@ -4,7 +4,7 @@ use vulkano::command_buffer::allocator::StandardCommandBufferAllocator;
 use vulkano::command_buffer::{AutoCommandBufferBuilder, CommandBufferUsage, PrimaryAutoCommandBuffer};
 
 use crate::buffer::Buffer;
-use crate::node::{ComputeNode, ComputeNodeError, Node};
+use crate::node::{ComputeNode, ComputeNodeError, ContainerNode, Node};
 
 #[derive(Error, Debug)]
 pub enum CommandBufferError {
@@ -76,7 +76,12 @@ impl CommandBufferBuilder {
         Ok(())
     }
 
-    pub fn record_compute_node(&mut self, node: &ComputeNode) -> Result<(), CommandBufferError> {
+    pub fn record_compute_node(&mut self, node: &mut ComputeNode) -> Result<(), CommandBufferError> {
+        node.record(&mut self.builder)?;
+        Ok(())
+    }
+
+    pub fn record_container_node(&mut self, node: &mut ContainerNode) -> Result<(), CommandBufferError> {
         node.record(&mut self.builder)?;
         Ok(())
     }

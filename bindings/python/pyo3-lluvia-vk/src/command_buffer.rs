@@ -22,10 +22,10 @@ impl PyCommandBufferBuilder {
         }
     }
 
-    pub fn record_compute_node(&mut self, node: &PyComputeNode) -> PyResult<()> {
+    pub fn record_compute_node(&mut self, node: &mut PyComputeNode) -> PyResult<()> {
         if let Some(builder) = &mut self.inner {
             builder
-                .record_compute_node(&node.inner)
+                .record_compute_node(&mut node.inner)
                 .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
             Ok(())
         } else {

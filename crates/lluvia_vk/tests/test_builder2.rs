@@ -78,44 +78,4 @@ mod tests {
 
         Ok(())
     }
-
-    // #[test]
-    // fn test_scriptable_node() -> Result<()> {
-    //     use ll::node::ComputeNodeBuilder2;
-
-    //     let session_descriptor = ll::SessionDescriptor::default();
-
-    //     let session = ll::Session::new(session_descriptor)?;
-
-    //     let device_buffer = session.create_buffer_device_local(512)?;
-    //     let staging_buffer = session.create_buffer_host_visible(512)?;
-
-    //     let inner_builder = session.load_compute_node_builder("lluvia/assign")?;
-    //     let compute_node = MyScriptableNode::new(session.clone(), inner_builder)
-    //         .build_descriptor()?
-    //         .set_constant("offset", ll::node::Constant::Float(10.0))?
-    //         .bind("out_buffer", ll::node::NodePort::Buffer(device_buffer.clone()))?
-    //         .build()?;
-
-    //     // two builders: one for descriptor, one for node. Transfer state.
-    //     // let mut c = session.load_compute_node_builder("lluvia/assign")?
-    //     //     .transition()?
-    //     //     .;
-
-    //     let mut builder_cb = session.create_command_buffer_builder()?;
-    //     builder_cb.record_compute_node(&compute_node)?;
-    //     builder_cb.copy_buffer(device_buffer.clone(), staging_buffer.clone())?;
-
-    //     let command_buffer = builder_cb.build_command_buffer()?;
-    //     session.run(command_buffer)?;
-
-    //     let data = staging_buffer.read();
-    //     let floats: &[f32] = bytemuck::cast_slice(&data);
-
-    //     for (i, item) in floats.iter().enumerate() {
-    //         assert_eq!(*item, i as f32 + 10.0, "index {i}");
-    //     }
-
-    //     Ok(())
-    // }
 }
