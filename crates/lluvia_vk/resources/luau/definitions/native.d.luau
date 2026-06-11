@@ -43,6 +43,11 @@ end
 declare function load_program(path: string): Program
 
 -----------------------------------------------------------
+declare class Buffer
+    function size(self): number
+end
+
+-----------------------------------------------------------
 declare class Constant
 	function set(self, value: any): nil
 	function get(self): any
@@ -90,11 +95,17 @@ declare class ComputeNode
     function get_port(self, name: string): any
     function set_constant(self, name: string, value: any): nil
     function get_constant(self, name: string): any
+    function bind(self, name: string, obj: Buffer): nil
+    function init(self): nil
 end
 
 -----------------------------------------------------------
-declare class Session
+declare class SessionDescriptor
     enable_debug: boolean
+end
+
+declare class Session
+    function load_program(self, path: string): Program
 end
 
 -----------------------------------------------------------
@@ -102,7 +113,6 @@ declare class ContainerNodeDescriptor
     builder_name: string
 
     function get_constant(self, name: string): any
-    function getConstant(self, name: string): any
 end
 
 -----------------------------------------------------------
@@ -121,21 +131,19 @@ declare class ContainerNode
     function set_constant(self, name: string, value: any): nil
     function get_constants(self): { [string]: any }
     function get_port(self, name: string): any
-    function bind(self, name: string, obj: any): nil
-    function add_node(self, name: string, child: any): nil
-    function get_node(self, name: string): any
+    function bind(self, name: string, obj: Buffer): nil
+    function add_node(self, name: string, child: ComputeNode | ContainerNode): nil
+    function get_node(self, name: string): ComputeNode | ContainerNode | nil
     function init(self): nil
 end
 
-declare function create_compute_node(builder_name: string, args: { [string]: any }?): ComputeNode
-declare function create_container_node(builder_name: string, args: { [string]: any }?): ContainerNode
+declare function create_compute_node(builder_name: string, args: Arguments?): ComputeNode
+declare function create_container_node(builder_name: string, args: Arguments?): ContainerNode
 
 -----------------------------------------------------------
 declare class CommandBuffer
     function run(self, node: ComputeNode | ContainerNode): nil
 end
-
-
 
 
 -----------------------------------------------------------

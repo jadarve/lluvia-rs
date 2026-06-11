@@ -143,6 +143,7 @@ impl Node for ContainerNode {
                     end
                 "#;
 
+                // FIXME: avoid unsafe, maybe using Arc<mut ContainerNode>
                 let lua_node = unsafe { crate::interpreter::wrappers::container_node::LuaContainerNode::new(self) };
                 let lua_node_userdata = lua
                     .create_userdata(lua_node)

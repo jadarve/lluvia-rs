@@ -13,13 +13,6 @@ impl mlua::UserData for ContainerNodeDescriptor {
                 .map_err(|e| mlua::Error::RuntimeError(e.to_string()))?;
             Ok(constant.clone())
         });
-
-        methods.add_method("getConstant", |_, this, name: String| {
-            let constant = this
-                .get_constant(&name)
-                .map_err(|e| mlua::Error::RuntimeError(e.to_string()))?;
-            Ok(constant.clone())
-        });
     }
 }
 

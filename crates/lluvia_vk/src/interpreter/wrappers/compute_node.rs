@@ -64,15 +64,6 @@ impl mlua::UserData for LuaComputeNode {
             }
         });
 
-        methods.add_method("getPort", |_, this, name: String| {
-            let node = unsafe { &*this.node_ptr };
-            if let Some(NodePort::Buffer(buf)) = node.port(&name) {
-                Ok(Some(LuaBuffer(buf.clone())))
-            } else {
-                Ok(None)
-            }
-        });
-
         methods.add_method("get_constant", |_, this, name: String| {
             let node = unsafe { &*this.node_ptr };
             let constant = node
@@ -81,22 +72,7 @@ impl mlua::UserData for LuaComputeNode {
             Ok(constant.clone())
         });
 
-        methods.add_method("getConstant", |_, this, name: String| {
-            let node = unsafe { &*this.node_ptr };
-            let constant = node
-                .get_constant(&name)
-                .map_err(|e| mlua::Error::RuntimeError(e.to_string()))?;
-            Ok(constant.clone())
-        });
-
         methods.add_method("set_constant", |lua, this, (name, value): (String, mlua::Value)| {
-            let node = unsafe { &mut *this.node_ptr };
-            let constant = crate::node::Constant::from_lua(value, lua)?;
-            node.set_constant(name, constant);
-            Ok(())
-        });
-
-        methods.add_method("setConstant", |lua, this, (name, value): (String, mlua::Value)| {
             let node = unsafe { &mut *this.node_ptr };
             let constant = crate::node::Constant::from_lua(value, lua)?;
             node.set_constant(name, constant);

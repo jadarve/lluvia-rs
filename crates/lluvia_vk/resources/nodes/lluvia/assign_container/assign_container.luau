@@ -58,7 +58,12 @@ local builder: ll.ContainerNodeBuilder = {
 	-- Called when the node is recorded on a CommandBuffer
 	on_node_record = function(self: ll.ContainerNodeBuilder, node: ContainerNode, cmdBuffer: CommandBuffer)
 		local assign_node = node:get_node("assign_node")
-		cmdBuffer:run(assign_node)
+
+		if assign_node then
+			cmdBuffer:run(assign_node)
+		else
+			ll:log_error("assign_container.on_node_record(): assign_node not found")
+		end
 	end,
 }
 

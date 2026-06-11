@@ -221,13 +221,17 @@ impl mlua::UserData for LuaCommandBufferBuilder {
             let builder = unsafe { &mut *this.builder_ptr };
             if let mlua::Value::UserData(ud) = &node_val {
                 if let Ok(lua_compute) = ud.borrow::<crate::interpreter::wrappers::compute_node::LuaComputeNode>() {
-                    let compute_node = unsafe { &mut *lua_compute.node_ptr };
+                    // SAFETY: copy raw pointer to local variable to avoid mutability issues with Ref guard, then cast to mutable reference
+                    let ptr = lua_compute.node_ptr;
+                    let compute_node = unsafe { &mut *ptr };
                     compute_node
                         .record(builder)
                         .map_err(|e: crate::node::ComputeNodeError| mlua::Error::RuntimeError(e.to_string()))?;
                     Ok(())
                 } else if let Ok(lua_container) = ud.borrow::<LuaContainerNode>() {
-                    let container_node = unsafe { &mut *lua_container.node_ptr };
+                    // SAFETY: copy raw pointer to local variable to avoid mutability issues with Ref guard, then cast to mutable reference
+                    let ptr = lua_container.node_ptr;
+                    let container_node = unsafe { &mut *ptr };
                     container_node
                         .record(builder)
                         .map_err(|e: crate::node::ComputeNodeError| mlua::Error::RuntimeError(e.to_string()))?;
