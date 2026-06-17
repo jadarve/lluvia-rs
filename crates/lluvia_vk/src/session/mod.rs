@@ -311,7 +311,7 @@ impl Session {
     pub fn load_compute_node_builder(
         self: &Arc<Self>,
         name: &str,
-    ) -> Result<Box<dyn crate::node::ComputeNodeBuilder>, SessionError> {
+    ) -> Result<crate::node::ComputeNodeBuilder, SessionError> {
         let name_parts: Vec<&str> = name.split('/').collect();
         let last_part = name_parts
             .last()
@@ -341,7 +341,7 @@ impl Session {
             name: name.to_string(),
         };
 
-        Ok(Box::new(builder))
+        Ok(crate::node::ComputeNodeBuilder::new(Box::new(builder), self.clone()))
     }
 
     pub fn load_container_node_builder(

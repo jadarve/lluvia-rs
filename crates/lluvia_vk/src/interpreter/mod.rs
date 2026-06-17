@@ -140,7 +140,7 @@ pub struct LuauComputeNodeBuilder {
     pub(crate) name: String,
 }
 
-impl crate::node::ComputeNodeBuilder for LuauComputeNodeBuilder {
+impl crate::node::ComputeNodeBuilderImpl for LuauComputeNodeBuilder {
     fn build_descriptor(
         &self,
         args: std::collections::HashMap<String, crate::node::Argument>,

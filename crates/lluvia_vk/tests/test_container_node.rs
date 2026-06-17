@@ -41,6 +41,10 @@ mod tests {
 
         // Record commands
         let mut builder_cb = session.create_command_buffer_builder()?;
+
+        // Because of this record function, the container node keeps a weak interpreter reference.
+        // That's not good as links container nodes to the interpreter.
+        // I could use the builder to record the node instead.
         builder_cb.record_container_node(&mut container_node)?;
         builder_cb.copy_buffer(device_buffer, staging_buffer.clone())?;
 
