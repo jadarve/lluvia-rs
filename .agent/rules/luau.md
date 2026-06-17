@@ -17,3 +17,4 @@ When working on Luau code in this project, strictly adhere to the following best
 6. **Iteration:** Use generalized iteration (`for k, v in table do`) instead of the older `pairs()` or `ipairs()`. It is optimized in Luau and looks cleaner.
 7. **Error Handling:** Use `assert(condition, "error message")` for invariants and conditions that must be true. Use `error("message")` to explicitly fail in invalid states.
 8. **Imports/Requires:** Keep all `require()` calls at the top of the file, just below the `--!strict` directive. Utilize path aliases (like `@lib/...`) when available to maintain clean and reliable imports.
+9. **Snake Case Naming Convention:** Only `snake_case` naming convention must be used for variables, functions, and method calls on native objects/wrappers (e.g., `get_constant`, `bind_node`). Under no circumstances should camelCase wrappers (e.g., `getConstant`, `bindNode`) be added or used in the codebase.

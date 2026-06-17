@@ -4,10 +4,7 @@ mod tests {
     use std::collections::HashMap;
 
     use anyhow::Result;
-    use lluvia_vk::{
-        self as ll, math,
-        node::{Argument, Node},
-    };
+    use lluvia_vk::{self as ll, math, node::Argument};
 
     #[cfg(test)]
     mod vs {
@@ -111,7 +108,7 @@ mod tests {
 
         let mut builder = session.create_command_buffer_builder()?;
 
-        builder.record_compute_node(&node)?;
+        builder.record_compute_node(&mut node)?;
 
         // Copy from device buffer to staging buffer to verify results
         builder.copy_buffer(device_buffer.clone(), staging_buffer.clone())?;
@@ -151,26 +148,14 @@ mod tests {
 
         let builder = session.load_compute_node_builder("lluvia/assign")?;
 
-        // Create the descriptor given the arguments.
-        let node_descriptor = builder.build_descriptor(args)?;
-
-        // once the descriptor is passed to session.create_compute_node, the descriptor cannot be
-        // changed anymore.
-        let mut compute_node = session.create_compute_node(node_descriptor)?;
-
-        use ll::node::Node;
-        compute_node.bind("out_buffer", ll::node::NodePort::Buffer(device_buffer.clone()))?;
-
-        // Set the offset constant
-        compute_node.set_constant("offset", ll::node::Constant::Float(OFFSET));
-
-        // this is different to Lluvia Cpp. There, the compute_node instance holds the reference to the builder
-        // so that when the node is initialized, the builder is called.
-        // Here the builder and the compute_node are independent.
-        builder.init_node(&mut compute_node)?;
+        let mut compute_node = builder
+            .build_descriptor(args)?
+            .bind("out_buffer", ll::node::NodePort::Buffer(device_buffer.clone()))?
+            .set_constant("offset", ll::node::Constant::Float(OFFSET))
+            .build()?;
 
         let mut builder_cb = session.create_command_buffer_builder()?;
-        builder_cb.record_compute_node(&compute_node)?;
+        builder_cb.record_compute_node(&mut compute_node)?;
         builder_cb.copy_buffer(device_buffer.clone(), staging_buffer.clone())?;
 
         let command_buffer = builder_cb.build_command_buffer()?;
@@ -204,26 +189,14 @@ mod tests {
 
         let builder = session.load_compute_node_builder("lluvia/assign_slang")?;
 
-        // Create the descriptor given the arguments.
-        let node_descriptor = builder.build_descriptor(args)?;
-
-        // once the descriptor is passed to session.create_compute_node, the descriptor cannot be
-        // changed anymore.
-        let mut compute_node = session.create_compute_node(node_descriptor)?;
-
-        use ll::node::Node;
-        compute_node.bind("out_buffer", ll::node::NodePort::Buffer(device_buffer.clone()))?;
-
-        // Set the offset constant
-        compute_node.set_constant("offset", ll::node::Constant::Float(OFFSET));
-
-        // this is different to Lluvia Cpp. There, the compute_node instance holds the reference to the builder
-        // so that when the node is initialized, the builder is called.
-        // Here the builder and the compute_node are independent.
-        builder.init_node(&mut compute_node)?;
+        let mut compute_node = builder
+            .build_descriptor(args)?
+            .bind("out_buffer", ll::node::NodePort::Buffer(device_buffer.clone()))?
+            .set_constant("offset", ll::node::Constant::Float(OFFSET))
+            .build()?;
 
         let mut builder_cb = session.create_command_buffer_builder()?;
-        builder_cb.record_compute_node(&compute_node)?;
+        builder_cb.record_compute_node(&mut compute_node)?;
         builder_cb.copy_buffer(device_buffer.clone(), staging_buffer.clone())?;
 
         let command_buffer = builder_cb.build_command_buffer()?;
@@ -245,24 +218,19 @@ mod tests {
 
         let session = ll::Session::new(session_descriptor)?;
 
-        let builder = session.load_compute_node_builder("lluvia/assign2")?;
-
-        let node_descriptor = builder.build_descriptor(std::collections::HashMap::new())?;
-        let mut compute_node = session.create_compute_node(node_descriptor)?;
-
         let device_buffer = session.create_buffer_device_local(512)?;
         let staging_buffer = session.create_buffer_host_visible(512)?;
 
-        use ll::node::Node;
-        compute_node.bind("out_buffer", ll::node::NodePort::Buffer(device_buffer.clone()))?;
+        let builder = session.load_compute_node_builder("lluvia/assign2")?;
 
-        // Set the offset constant to 10.0
-        compute_node.set_constant("offset", ll::node::Constant::Float(10.0));
-
-        builder.init_node(&mut compute_node)?;
+        let mut compute_node = builder
+            .build_descriptor(std::collections::HashMap::new())?
+            .bind("out_buffer", ll::node::NodePort::Buffer(device_buffer.clone()))?
+            .set_constant("offset", ll::node::Constant::Float(10.0))
+            .build()?;
 
         let mut builder_cb = session.create_command_buffer_builder()?;
-        builder_cb.record_compute_node(&compute_node)?;
+        builder_cb.record_compute_node(&mut compute_node)?;
         builder_cb.copy_buffer(device_buffer.clone(), staging_buffer.clone())?;
 
         let command_buffer = builder_cb.build_command_buffer()?;
@@ -273,155 +241,6 @@ mod tests {
 
         for (i, item) in floats.iter().enumerate() {
             assert_eq!(*item, i as f32 + 10.0);
-        }
-
-        Ok(())
-    }
-
-    struct MyScriptableNode {
-        session: std::sync::Arc<ll::Session>,
-        inner: Box<dyn ll::node::ComputeNodeBuilder>,
-        descriptor: Option<ll::node::ComputeNodeDescriptor>,
-        bindings: std::collections::HashMap<String, ll::node::NodePort>,
-    }
-
-    impl MyScriptableNode {
-        fn new(session: std::sync::Arc<ll::Session>, inner: Box<dyn ll::node::ComputeNodeBuilder>) -> Self {
-            Self {
-                session,
-                inner,
-                descriptor: None,
-                bindings: std::collections::HashMap::new(),
-            }
-        }
-    }
-
-    impl ll::node::ComputeNodeBuilder2 for MyScriptableNode {
-        fn build_descriptor(&mut self) -> Result<&mut Self, ll::node::ComputeNodeBuilderError> {
-            let mut args = std::collections::HashMap::new();
-            args.insert("length".to_string(), ll::node::Argument::I32(128));
-            self.descriptor = Some(self.inner.build_descriptor(args)?);
-            Ok(self)
-        }
-
-        fn get_descriptor(&mut self) -> Result<ll::node::ComputeNodeDescriptor, ll::node::ComputeNodeBuilderError> {
-            if self.descriptor.is_none() {
-                self.build_descriptor()?;
-            }
-
-            Ok(self.descriptor.as_ref().unwrap().clone())
-        }
-
-        fn init_node(&self, node: &mut ll::node::ComputeNode) -> Result<(), ll::node::ComputeNodeError> {
-            self.inner.init_node(node)
-        }
-
-        fn set_constant(
-            &mut self,
-            name: impl Into<String>,
-            value: ll::node::Constant,
-        ) -> Result<&mut Self, ll::node::ComputeNodeBuilderError> {
-            self.descriptor = match self.descriptor.take() {
-                Some(mut descriptor) => {
-                    descriptor.constants.insert(name.into(), value);
-                    Some(descriptor)
-                }
-                None => {
-                    return Err(ll::node::ComputeNodeBuilderError::RuntimeError {
-                        msg: "descriptor not initialized".to_string(),
-                    });
-                }
-            };
-
-            Ok(self)
-        }
-
-        fn bind(
-            &mut self,
-            name: &str,
-            obj: ll::node::NodePort,
-        ) -> Result<&mut Self, ll::node::ComputeNodeBuilderError> {
-            self.bindings.insert(name.to_string(), obj);
-            Ok(self)
-        }
-
-        fn build(&mut self) -> Result<ll::node::ComputeNode, ll::node::ComputeNodeBuilderError> {
-            // FIXME: should not need 2 descriptors
-            let descriptor = self.get_descriptor()?;
-
-            // create the node
-            let mut node = self
-                .session
-                .create_compute_node(descriptor)
-                .map_err(|e| ll::node::ComputeNodeBuilderError::RuntimeError { msg: e.to_string() })?;
-
-            // bind ports
-            for (name, port) in self.bindings.drain() {
-                node.bind(&name, port)
-                    .map_err(|e| ll::node::ComputeNodeBuilderError::RuntimeError { msg: e.to_string() })?;
-            }
-
-            ///////////////////////////////////////////////////////////////////
-            // This block is done by the script
-            // node.push_constants = Some(d2.con)
-            // push constants
-            // let mut push_constants = ll::node::PushConstants::default();
-
-            // for (_name, value) in d2.constants.drain() {
-            //     match value {
-            //         ll::node::Constant::Float(f) => push_constants.push_f32(f),
-            //         ll::node::Constant::Int(i) => push_constants.push_i32(i),
-            //         _ => {
-            //             return Err(ll::node::ComputeNodeBuilderError::RuntimeError {
-            //                 msg: "invalid constant type".to_string(),
-            //             });
-            //         }
-            //     }
-            // }
-
-            // node.push_constants = Some(push_constants);
-
-            // // FIXME: hardcoded to test
-            // node.set_grid_shape(&ll::math::UVec3::new(128, 1, 1));
-
-            self.inner
-                .init_node(&mut node)
-                .map_err(|e| ll::node::ComputeNodeBuilderError::RuntimeError { msg: e.to_string() })?;
-
-            Ok(node)
-        }
-    }
-
-    #[test]
-    fn test_scriptable_node() -> Result<()> {
-        use ll::node::ComputeNodeBuilder2;
-
-        let session_descriptor = ll::SessionDescriptor::default();
-
-        let session = ll::Session::new(session_descriptor)?;
-
-        let device_buffer = session.create_buffer_device_local(512)?;
-        let staging_buffer = session.create_buffer_host_visible(512)?;
-
-        let inner_builder = session.load_compute_node_builder("lluvia/assign")?;
-        let compute_node = MyScriptableNode::new(session.clone(), inner_builder)
-            .build_descriptor()?
-            .set_constant("offset", ll::node::Constant::Float(10.0))?
-            .bind("out_buffer", ll::node::NodePort::Buffer(device_buffer.clone()))?
-            .build()?;
-
-        let mut builder_cb = session.create_command_buffer_builder()?;
-        builder_cb.record_compute_node(&compute_node)?;
-        builder_cb.copy_buffer(device_buffer.clone(), staging_buffer.clone())?;
-
-        let command_buffer = builder_cb.build_command_buffer()?;
-        session.run(command_buffer)?;
-
-        let data = staging_buffer.read();
-        let floats: &[f32] = bytemuck::cast_slice(&data);
-
-        for (i, item) in floats.iter().enumerate() {
-            assert_eq!(*item, i as f32 + 10.0, "index {i}");
         }
 
         Ok(())
@@ -465,8 +284,6 @@ mod tests {
 
         // Load the node builder from Luau
         let builder = session.load_compute_node_builder(builder_name)?;
-        let node_descriptor = builder.build_descriptor(args)?;
-        let mut compute_node = session.create_compute_node(node_descriptor)?;
 
         // Create staging buffers and GPU images
         let img_in_size = (width * height * 4) as u64;
@@ -506,13 +323,11 @@ mod tests {
         let img_out = session.create_image(img_out_desc)?;
         let view_out = img_out.create_image_view(&view_desc)?;
 
-        // Bind the image views
-        use ll::node::Node;
-        compute_node.bind("in_rgba", ll::node::NodePort::ImageView(view_in))?;
-        compute_node.bind("out_gray", ll::node::NodePort::ImageView(view_out))?;
-
-        // Initialize node (calls the Luau builder's on_node_init)
-        builder.init_node(&mut compute_node)?;
+        let mut compute_node = builder
+            .build_descriptor(args)?
+            .bind("in_rgba", ll::node::NodePort::ImageView(view_in))?
+            .bind("out_gray", ll::node::NodePort::ImageView(view_out))?
+            .build()?;
 
         // Create staging buffer for the output single-channel image
         let img_out_size = (width * height) as u64;
@@ -521,7 +336,7 @@ mod tests {
         // Build command buffer: copy input data to GPU image, run compute node, copy output image back to staging buffer
         let mut builder_cb = session.create_command_buffer_builder()?;
         builder_cb.copy_buffer_to_image(staging_in, img_in)?;
-        builder_cb.record_compute_node(&compute_node)?;
+        builder_cb.record_compute_node(&mut compute_node)?;
         builder_cb.copy_image_to_buffer(img_out, staging_out.clone())?;
 
         let command_buffer = builder_cb.build_command_buffer()?;

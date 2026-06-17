@@ -266,13 +266,13 @@ impl Node for ComputeNode {
         self.objects.get(name)
     }
 
-    fn record(&self, builder: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>) -> Result<(), ComputeNodeError> {
+    fn record(
+        &mut self,
+        builder: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>,
+    ) -> Result<(), ComputeNodeError> {
         let global_shape = self.descriptor.global_shape;
 
         let groups = get_groups_shape(&self.workgroup_shape, &global_shape);
-        println!("workgroup_shape: {:?}", self.workgroup_shape.inner);
-        println!("global_shape: {:?}", global_shape.inner);
-        println!("groups: {:?}", groups.inner);
 
         builder
             .bind_pipeline_compute(self.pipeline.clone())

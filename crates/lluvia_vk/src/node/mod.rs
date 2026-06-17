@@ -9,16 +9,24 @@ use vulkano::command_buffer::PrimaryAutoCommandBuffer;
 
 mod argument;
 mod compute_node;
+mod compute_node_builder;
 mod compute_node_descriptor;
 mod constant;
+mod container_node;
+mod container_node_builder;
+mod container_node_descriptor;
 mod node_port;
 mod node_type;
 mod port_descriptor;
 
 pub use argument::*;
 pub use compute_node::*;
+pub use compute_node_builder::*;
 pub use compute_node_descriptor::*;
 pub use constant::*;
+pub use container_node::*;
+pub use container_node_builder::*;
+pub use container_node_descriptor::*;
 pub use node_port::*;
 pub use node_type::*;
 pub use port_descriptor::*;
@@ -71,48 +79,10 @@ pub trait Node {
     fn bind(&mut self, name: &str, obj: NodePort) -> Result<(), ComputeNodeError>;
     fn has_port(&self, name: &str) -> bool;
     fn port(&self, name: &str) -> Option<&NodePort>;
-    fn record(&self, builder: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>) -> Result<(), ComputeNodeError>;
+    fn record(
+        &mut self,
+        builder: &mut AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>,
+    ) -> Result<(), ComputeNodeError>;
 
     // FIXME: constant related methods should be declared here
-}
-
-// ---------------------------------------------------------------------------
-// ComputeNodeBuilder trait
-// ---------------------------------------------------------------------------
-
-/// Error returned by [`ComputeNodeBuilder`] operations.
-#[derive(Error, Debug)]
-pub enum ComputeNodeBuilderError {
-    #[error("Runtime error: {msg}")]
-    RuntimeError { msg: String },
-}
-
-/// Trait for compute node builders, mirroring C++ and Luau builders.
-pub trait ComputeNodeBuilder: Send {
-    /// Returns the node descriptor configured by the builder.
-    fn build_descriptor(
-        &self,
-        args: std::collections::HashMap<String, Argument>,
-    ) -> Result<ComputeNodeDescriptor, ComputeNodeBuilderError>;
-
-    /// Initializes the compute node (e.g., configures its grid shape or other state based on bound ports).
-    fn init_node(&self, node: &mut ComputeNode) -> Result<(), ComputeNodeError>;
-}
-
-pub trait ComputeNodeBuilder2: Send + Sized {
-    // Build the descriptor, keep it internally
-    fn build_descriptor(&mut self) -> Result<&mut Self, ComputeNodeBuilderError>;
-
-    /// Returns the node descriptor, if not initialized, it calls init_descriptor() first.
-    fn get_descriptor(&mut self) -> Result<ComputeNodeDescriptor, ComputeNodeBuilderError>;
-
-    /// Initializes the compute node (e.g., configures its grid shape or other state based on bound ports).
-    fn init_node(&self, node: &mut ComputeNode) -> Result<(), ComputeNodeError>;
-
-    /// Sets a constant. It can be called after init_descriptor() and before build() is called.
-    fn set_constant(&mut self, name: impl Into<String>, value: Constant) -> Result<&mut Self, ComputeNodeBuilderError>;
-
-    fn bind(&mut self, name: &str, obj: NodePort) -> Result<&mut Self, ComputeNodeBuilderError>;
-
-    fn build(&mut self) -> Result<ComputeNode, ComputeNodeBuilderError>;
 }

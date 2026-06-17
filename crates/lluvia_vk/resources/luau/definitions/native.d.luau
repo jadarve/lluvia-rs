@@ -43,6 +43,11 @@ end
 declare function load_program(path: string): Program
 
 -----------------------------------------------------------
+declare class Buffer
+    function size(self): number
+end
+
+-----------------------------------------------------------
 declare class Constant
 	function set(self, value: any): nil
 	function get(self): any
@@ -90,15 +95,57 @@ declare class ComputeNode
     function get_port(self, name: string): any
     function set_constant(self, name: string, value: any): nil
     function get_constant(self, name: string): any
+    function bind(self, name: string, obj: Buffer): nil
+    function init(self): nil
 end
 
 -----------------------------------------------------------
-declare class Session
+declare class SessionDescriptor
     enable_debug: boolean
 end
 
+declare class Session
+    function load_program(self, path: string): Program
+end
+
+-----------------------------------------------------------
+declare class ContainerNodeDescriptor
+    builder_name: string
+
+    function get_constant(self, name: string): any
+end
+
+-----------------------------------------------------------
+declare class ContainerNodeDescriptorBuilder
+    function builder_name(self, name: string): ContainerNodeDescriptorBuilder
+    function add_port(self, desc: PortDescriptor): ContainerNodeDescriptorBuilder
+    function add_constant(self, name: string, value: any): ContainerNodeDescriptorBuilder
+    function build(self): ContainerNodeDescriptor
+end
+
+declare function ContainerNodeDescriptorBuilder(): ContainerNodeDescriptorBuilder
+
+-----------------------------------------------------------
+declare class ContainerNode
+    function get_constant(self, name: string): any
+    function set_constant(self, name: string, value: any): nil
+    function get_constants(self): { [string]: any }
+    function get_port(self, name: string): any
+    function bind(self, name: string, obj: Buffer): nil
+    function add_node(self, name: string, child: ComputeNode | ContainerNode): nil
+    function get_node(self, name: string): ComputeNode | ContainerNode | nil
+    function init(self): nil
+end
+
+declare function create_compute_node(builder_name: string, args: Arguments?): ComputeNode
+declare function create_container_node(builder_name: string, args: Arguments?): ContainerNode
+
+-----------------------------------------------------------
+declare class CommandBuffer
+    function run(self, node: ComputeNode | ContainerNode): nil
+end
 
 
 -----------------------------------------------------------
-export type Argument = number | boolean | Vec3 | UVec3 | UVec2
+export type Argument = number | boolean | Vec3 | UVec3 | UVec2 | nil
 export type Arguments = { [string]: Argument }

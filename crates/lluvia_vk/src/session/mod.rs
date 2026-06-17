@@ -11,7 +11,7 @@ use vulkano::memory::allocator::StandardMemoryAllocator;
 
 use crate::buffer::{Buffer, BufferError};
 use crate::command_buffer::{CommandBuffer, CommandBufferBuilder, CommandBufferError};
-use crate::node::{ComputeNode, ComputeNodeDescriptor, ComputeNodeError};
+use crate::node::{ComputeNode, ComputeNodeDescriptor, ComputeNodeError, ContainerNode, ContainerNodeDescriptor};
 use crate::node_repository::Repository;
 use crate::program::{Program, ProgramError};
 
@@ -83,7 +83,7 @@ pub struct Session {
     // TOTHINK: consider adding internal mutability to interpreter to contain Mutex<Lua>
     interpreter: Arc<std::sync::Mutex<crate::interpreter::Interpreter>>,
 
-    repositories: Vec<Arc<Box<dyn Repository>>>,
+    pub(crate) repositories: Vec<Arc<Box<dyn Repository>>>,
 }
 
 impl Session {
@@ -218,6 +218,10 @@ impl Session {
             .map_err(SessionError::NodeError)
     }
 
+    pub fn create_container_node(&self, descriptor: ContainerNodeDescriptor) -> Result<ContainerNode, SessionError> {
+        Ok(ContainerNode::new(Arc::downgrade(&self.interpreter), descriptor))
+    }
+
     pub fn create_command_buffer_builder(&self) -> Result<CommandBufferBuilder, SessionError> {
         CommandBufferBuilder::new(
             self.command_buffer_allocator.clone(),
@@ -307,7 +311,7 @@ impl Session {
     pub fn load_compute_node_builder(
         self: &Arc<Self>,
         name: &str,
-    ) -> Result<Box<dyn crate::node::ComputeNodeBuilder>, SessionError> {
+    ) -> Result<crate::node::ComputeNodeBuilder, SessionError> {
         let name_parts: Vec<&str> = name.split('/').collect();
         let last_part = name_parts
             .last()
@@ -334,9 +338,45 @@ impl Session {
         let builder = crate::interpreter::LuauComputeNodeBuilder {
             interpreter: self.interpreter.clone(),
             builder_table_key,
+            name: name.to_string(),
         };
 
-        Ok(Box::new(builder))
+        Ok(crate::node::ComputeNodeBuilder::new(Box::new(builder), self.clone()))
+    }
+
+    pub fn load_container_node_builder(
+        self: &Arc<Self>,
+        name: &str,
+    ) -> Result<crate::node::ContainerNodeBuilder, SessionError> {
+        let name_parts: Vec<&str> = name.split('/').collect();
+        let last_part = name_parts
+            .last()
+            .ok_or_else(|| SessionError::RuntimeError(format!("Invalid container node builder name: {name}")))?;
+
+        let luau_path = format!("{name}/{last_part}.luau");
+
+        let luau_bytes = self
+            .repositories
+            .iter()
+            .find_map(|repo| repo.load(&luau_path).ok())
+            .ok_or_else(|| SessionError::BuilderNotFound(name.to_string()))?;
+
+        let script_content = std::str::from_utf8(&luau_bytes)
+            .map_err(|e| SessionError::RuntimeError(format!("Invalid Luau script content: {e:?}")))?;
+
+        let builder_table_key = {
+            let interpreter = self.interpreter.lock().unwrap();
+            interpreter
+                .load_container_node_builder(script_content, name)
+                .map_err(|e| SessionError::RuntimeError(format!("Interpreter failed to load builder: {e:?}")))?
+        };
+
+        let builder = crate::interpreter::LuauContainerNodeBuilder {
+            interpreter: self.interpreter.clone(),
+            builder_table_key,
+        };
+
+        Ok(crate::node::ContainerNodeBuilder::new(Box::new(builder), self.clone()))
     }
 }
 
