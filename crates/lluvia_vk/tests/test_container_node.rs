@@ -3,7 +3,7 @@ mod tests {
     use anyhow::Result;
     use lluvia_vk::{
         self as ll,
-        node::{Argument, Constant, Node, NodePort},
+        node::{Argument, Constant, NodePort},
     };
     use std::collections::HashMap;
 
@@ -21,23 +21,14 @@ mod tests {
 
         let args: HashMap<String, Argument> = HashMap::from([("length".to_string(), i32::try_from(LENGTH)?.into())]);
 
-        // Load the container node builder
+        // Load the container node builder and build the node
         let builder = session.load_container_node_builder("lluvia/assign_container")?;
 
-        // Create descriptor
-        let node_descriptor = builder.build_descriptor(args)?;
-
-        // Create container node
-        let mut container_node = session.create_container_node(node_descriptor)?;
-
-        // Bind out_buffer
-        container_node.bind("out_buffer", NodePort::Buffer(device_buffer.clone()))?;
-
-        // Set offset constant
-        container_node.set_constant("offset", Constant::Float(OFFSET));
-
-        // Initialize node (triggers inner assign node creation and binding)
-        builder.init_node(&mut container_node)?;
+        let mut container_node = builder
+            .build_descriptor(args)?
+            .bind("out_buffer", NodePort::Buffer(device_buffer.clone()))?
+            .set_constant("offset", Constant::Float(OFFSET))
+            .build()?;
 
         // Record commands
         let mut builder_cb = session.create_command_buffer_builder()?;

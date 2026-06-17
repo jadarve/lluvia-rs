@@ -229,7 +229,7 @@ pub struct LuauContainerNodeBuilder {
     pub(crate) builder_table_key: mlua::RegistryKey,
 }
 
-impl crate::node::ContainerNodeBuilder for LuauContainerNodeBuilder {
+impl crate::node::ContainerNodeBuilderImpl for LuauContainerNodeBuilder {
     fn build_descriptor(
         &self,
         args: std::collections::HashMap<String, crate::node::Argument>,
@@ -294,7 +294,23 @@ impl crate::node::ContainerNodeBuilder for LuauContainerNodeBuilder {
     }
 
     fn init_node(&self, node: &mut crate::node::ContainerNode) -> Result<(), crate::node::ComputeNodeError> {
-        node.init()
+        let interpreter = self.interpreter.lock().unwrap();
+        let lua = &interpreter.lua;
+
+        let builder_table: mlua::Table = lua
+            .registry_value(&self.builder_table_key)
+            .map_err(|e: mlua::Error| crate::node::ComputeNodeError::DispatchFailed(e.to_string()))?;
+
+        if let Ok(on_node_init_fn) = builder_table.get::<mlua::Function>("on_node_init") {
+            let lua_node = unsafe { crate::interpreter::wrappers::container_node::LuaContainerNode::new(node) };
+            let lua_node_userdata = lua
+                .create_userdata(lua_node)
+                .map_err(|e: mlua::Error| crate::node::ComputeNodeError::DispatchFailed(e.to_string()))?;
+            on_node_init_fn
+                .call::<()>((builder_table, lua_node_userdata))
+                .map_err(|e: mlua::Error| crate::node::ComputeNodeError::DispatchFailed(e.to_string()))?;
+        }
+        Ok(())
     }
 }
 

@@ -347,7 +347,7 @@ impl Session {
     pub fn load_container_node_builder(
         self: &Arc<Self>,
         name: &str,
-    ) -> Result<Box<dyn crate::node::ContainerNodeBuilder>, SessionError> {
+    ) -> Result<crate::node::ContainerNodeBuilder, SessionError> {
         let name_parts: Vec<&str> = name.split('/').collect();
         let last_part = name_parts
             .last()
@@ -376,7 +376,7 @@ impl Session {
             builder_table_key,
         };
 
-        Ok(Box::new(builder))
+        Ok(crate::node::ContainerNodeBuilder::new(Box::new(builder), self.clone()))
     }
 }
 
