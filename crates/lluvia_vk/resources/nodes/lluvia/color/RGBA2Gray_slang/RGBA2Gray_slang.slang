@@ -1,5 +1,5 @@
-#include <lluvia/core.slang>
-#include <lluvia/color.slang>
+import lluvia.core;
+import lluvia.color;
 
 [[vk::binding(0, 0)]]
 [[format("rgba8ui")]]
@@ -8,8 +8,6 @@ RWTexture2D<uint4> in_rgba;
 [[vk::binding(1, 0)]]
 [[format("r8ui")]]
 RWTexture2D<uint> out_gray;
-
-LLUVIA_WORKGROUP
 
 [shader("compute")]
 [numthreads(workgroup_x, workgroup_y, workgroup_z)]

@@ -1,7 +1,6 @@
-#ifndef LLUVIA_CAMERA_SLANG_
-#define LLUVIA_CAMERA_SLANG_
+module camera;
 
-struct ll_camera
+public struct ll_camera
 {
     float3x3 K;
     float3x3 Kinv;
@@ -9,7 +8,7 @@ struct ll_camera
     float4 tangentialDistortion;
 };
 
-float2 ll_camera_standardInterpolationCoordinates(const ll_camera cam, const float2 pixCoords)
+public float2 ll_camera_standardInterpolationCoordinates(const ll_camera cam, const float2 pixCoords)
 {
     const float3 normalizedCoords = mul(cam.Kinv, float3(pixCoords.xy, 1.0));
 
@@ -52,7 +51,7 @@ float2 ll_camera_standardInterpolationCoordinates(const ll_camera cam, const flo
 /**
 See See https://docs.opencv.org/3.4/db/d58/group__calib3d__fisheye.html for more details.
 */
-float2 ll_camera_fisheyeInterpolationCoordinates(const ll_camera cam, const float2 pixCoords)
+public float2 ll_camera_fisheyeInterpolationCoordinates(const ll_camera cam, const float2 pixCoords)
 {
     const float3 normalizedCoords = mul(cam.Kinv, float3(pixCoords.xy, 1.0));
 
@@ -86,5 +85,3 @@ float2 ll_camera_fisheyeInterpolationCoordinates(const ll_camera cam, const floa
     const float3 outPixCoords = mul(cam.K, Pdistorted);
     return outPixCoords.xy;
 }
-
-#endif // LLUVIA_CAMERA_SLANG_

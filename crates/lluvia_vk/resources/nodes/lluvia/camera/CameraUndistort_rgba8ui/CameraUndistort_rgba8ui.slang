@@ -1,5 +1,5 @@
-#include <lluvia/core.slang>
-#include <lluvia/camera.slang>
+import lluvia.core;
+import lluvia.camera;
 
 struct PushConsts
 {
@@ -24,8 +24,6 @@ ConstantBuffer<UniformInCamera> in_camera;
 [[vk::binding(2, 0)]]
 [[format("rgba8ui")]]
 RWTexture2D<uint4> out_rgba;
-
-LLUVIA_WORKGROUP
 
 [shader("compute")]
 [numthreads(workgroup_x, workgroup_y, workgroup_z)]
