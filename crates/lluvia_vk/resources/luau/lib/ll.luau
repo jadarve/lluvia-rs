@@ -92,4 +92,8 @@ function module.create_container_node(builder_name: string, args: Arguments?): C
 	return create_container_node(builder_name, args)
 end
 
+function module.create_image_view(width: number, height: number, depth: number, channel_count: number, channel_type: string): ImageView
+	return create_image_view(width, height, depth, channel_count, channel_type)
+end
+
 return module

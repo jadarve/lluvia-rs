@@ -377,6 +377,9 @@ impl Interpreter {
         let create_compute_node_fn = self
             .lua
             .create_function(|lua, (builder_name, args_val): (String, Option<mlua::Table>)| {
+                // Block 1: Session Retrieval
+                // Retrieve the Weak reference to the Session registered in the Lua VM app data,
+                // and upgrade it to ensure the Session is still active.
                 let weak = lua
                     .app_data_ref::<Weak<crate::session::Session>>()
                     .ok_or_else(|| mlua::Error::RuntimeError("Session not registered".to_string()))?;
@@ -385,6 +388,9 @@ impl Interpreter {
                     .upgrade()
                     .ok_or_else(|| mlua::Error::RuntimeError("Session has been dropped".to_string()))?;
 
+                // Block 2: Argument Parsing and Conversion from Lua to Rust Node Arguments
+                // Convert the incoming Lua arguments table into a Rust HashMap of Argument types,
+                // supporting integers, floats, booleans, and custom UserData types (Vec3, UVec3, UVec2).
                 let mut args = std::collections::HashMap::new();
                 if let Some(table) = args_val {
                     for pair in table.pairs::<String, mlua::Value>() {
@@ -399,13 +405,28 @@ impl Interpreter {
                             }
                             mlua::Value::Integer(i) => crate::node::Argument::I32(i as i32),
                             mlua::Value::Boolean(b) => crate::node::Argument::Bool(b),
+                            mlua::Value::UserData(ud) => {
+                                if let Ok(v3) = ud.borrow::<crate::math::Vec3>() {
+                                    crate::node::Argument::Vec3(*v3)
+                                } else if let Ok(uv3) = ud.borrow::<crate::math::UVec3>() {
+                                    crate::node::Argument::UVec3(*uv3)
+                                } else if let Ok(uv2) = ud.borrow::<crate::math::UVec2>() {
+                                    crate::node::Argument::UVec2(*uv2)
+                                } else {
+                                    return Err(mlua::Error::RuntimeError(
+                                        "Unsupported UserData argument type".to_string(),
+                                    ));
+                                }
+                            }
                             _ => return Err(mlua::Error::RuntimeError("Unsupported argument type".to_string())),
                         };
                         args.insert(k, arg);
                     }
                 }
 
-                // Resolve builder in the Lua VM directly without locking the interpreter mutex
+                // Block 3: Dynamic Luau Script Resolution and Execution
+                // Resolve and load the Luau builder script corresponding to the node builder name
+                // from the Session's repositories, then execute it within the Lua state.
                 let name = &builder_name;
                 let name_parts: Vec<&str> = name.split('/').collect();
                 let last_part = name_parts
@@ -425,6 +446,8 @@ impl Interpreter {
 
                 lua.load(script_content).set_name("builder").exec()?;
 
+                // Block 4: Builder Retrieval from Luau Registry
+                // Retrieve the registered builder table from the library's registry table.
                 let ll: mlua::Table = lua.load("return require('@lib/ll.luau')").eval()?;
 
                 let compute_node_builders: mlua::Table = ll.get("compute_node_builders")?;
@@ -446,6 +469,9 @@ impl Interpreter {
                     _ => return Err(mlua::Error::RuntimeError("Builder is not a table".to_string())),
                 };
 
+                // Block 5: Invoking build_descriptor to obtain Node Descriptor
+                // Call the builder's `build_descriptor` function, converting the Rust arguments
+                // back into a Lua table to pass along.
                 let build_descriptor_fn: mlua::Function = builder_table.get("build_descriptor")?;
                 let lua_args = lua.create_table()?;
                 for (k, v) in args {
@@ -453,13 +479,19 @@ impl Interpreter {
                         crate::node::Argument::F32(x) => mlua::Value::Number(x as f64),
                         crate::node::Argument::I32(x) => mlua::Value::Integer(x as i64),
                         crate::node::Argument::Bool(x) => mlua::Value::Boolean(x),
-                        _ => return Err(mlua::Error::RuntimeError("Unsupported arg type".to_string())),
+                        crate::node::Argument::Vec3(x) => lua.create_userdata(x).map(mlua::Value::UserData)?,
+                        crate::node::Argument::UVec3(x) => lua.create_userdata(x).map(mlua::Value::UserData)?,
+                        crate::node::Argument::UVec2(x) => lua.create_userdata(x).map(mlua::Value::UserData)?,
                     };
                     lua_args.set(k, lua_val)?;
                 }
 
                 let descriptor: mlua::UserDataRef<crate::node::ComputeNodeDescriptor> =
                     build_descriptor_fn.call((builder_table.clone(), lua_args))?;
+
+                // Block 6: Compute Node Creation and Wrapping
+                // Request the Session to instantiate the compute node from the resolved descriptor,
+                // and return a Lua-managed owned wrapper.
                 let compute_node = session
                     .create_compute_node(descriptor.clone())
                     .map_err(|e| mlua::Error::RuntimeError(format!("Failed to create compute node: {}", e)))?;
@@ -503,6 +535,19 @@ impl Interpreter {
                             }
                             mlua::Value::Integer(i) => crate::node::Argument::I32(i as i32),
                             mlua::Value::Boolean(b) => crate::node::Argument::Bool(b),
+                            mlua::Value::UserData(ud) => {
+                                if let Ok(v3) = ud.borrow::<crate::math::Vec3>() {
+                                    crate::node::Argument::Vec3(*v3)
+                                } else if let Ok(uv3) = ud.borrow::<crate::math::UVec3>() {
+                                    crate::node::Argument::UVec3(*uv3)
+                                } else if let Ok(uv2) = ud.borrow::<crate::math::UVec2>() {
+                                    crate::node::Argument::UVec2(*uv2)
+                                } else {
+                                    return Err(mlua::Error::RuntimeError(
+                                        "Unsupported UserData argument type".to_string(),
+                                    ));
+                                }
+                            }
                             _ => return Err(mlua::Error::RuntimeError("Unsupported argument type".to_string())),
                         };
                         args.insert(k, arg);
@@ -557,7 +602,9 @@ impl Interpreter {
                         crate::node::Argument::F32(x) => mlua::Value::Number(x as f64),
                         crate::node::Argument::I32(x) => mlua::Value::Integer(x as i64),
                         crate::node::Argument::Bool(x) => mlua::Value::Boolean(x),
-                        _ => return Err(mlua::Error::RuntimeError("Unsupported arg type".to_string())),
+                        crate::node::Argument::Vec3(x) => lua.create_userdata(x).map(mlua::Value::UserData)?,
+                        crate::node::Argument::UVec3(x) => lua.create_userdata(x).map(mlua::Value::UserData)?,
+                        crate::node::Argument::UVec2(x) => lua.create_userdata(x).map(mlua::Value::UserData)?,
                     };
                     lua_args.set(k, lua_val)?;
                 }
@@ -580,6 +627,86 @@ impl Interpreter {
             .set("create_container_node", create_container_node_fn)
             .map_err(|e| InterpreterError::RuntimeError {
                 msg: format!("Failed to register create_container_node global: {e}"),
+            })?;
+
+        let create_image_view_fn = self
+            .lua
+            .create_function(
+                |lua, (width, height, depth, channel_count, channel_type_str): (u32, u32, u32, u32, String)| {
+                    let weak = lua
+                        .app_data_ref::<Weak<crate::session::Session>>()
+                        .ok_or_else(|| mlua::Error::RuntimeError("Session not registered".to_string()))?;
+
+                    let session = weak
+                        .upgrade()
+                        .ok_or_else(|| mlua::Error::RuntimeError("Session has been dropped".to_string()))?;
+
+                    let channel_count = match channel_count {
+                        1 => crate::image::ChannelCount::C1,
+                        2 => crate::image::ChannelCount::C2,
+                        3 => crate::image::ChannelCount::C3,
+                        4 => crate::image::ChannelCount::C4,
+                        _ => {
+                            return Err(mlua::Error::RuntimeError(format!(
+                                "Invalid channel count: {channel_count}"
+                            )));
+                        }
+                    };
+
+                    let channel_type = match channel_type_str.as_str() {
+                        "Uint8" => crate::image::ChannelType::Uint8,
+                        "Int8" => crate::image::ChannelType::Int8,
+                        "Uint16" => crate::image::ChannelType::Uint16,
+                        "Int16" => crate::image::ChannelType::Int16,
+                        "Float16" => crate::image::ChannelType::Float16,
+                        "Uint32" => crate::image::ChannelType::Uint32,
+                        "Int32" => crate::image::ChannelType::Int32,
+                        "Float32" => crate::image::ChannelType::Float32,
+                        "Uint64" => crate::image::ChannelType::Uint64,
+                        "Int64" => crate::image::ChannelType::Int64,
+                        "Float64" => crate::image::ChannelType::Float64,
+                        _ => {
+                            return Err(mlua::Error::RuntimeError(format!(
+                                "Invalid channel type: {channel_type_str}"
+                            )));
+                        }
+                    };
+
+                    let desc = crate::image::ImageDescriptor::builder()
+                        .width(width)
+                        .height(height)
+                        .depth(depth)
+                        .channel_count(channel_count)
+                        .channel_type(channel_type)
+                        .usage(
+                            vulkano::image::ImageUsage::STORAGE
+                                | vulkano::image::ImageUsage::SAMPLED
+                                | vulkano::image::ImageUsage::TRANSFER_SRC
+                                | vulkano::image::ImageUsage::TRANSFER_DST,
+                        )
+                        .build();
+
+                    let image = session
+                        .create_image(desc)
+                        .map_err(|e| mlua::Error::RuntimeError(format!("Failed to create image: {e}")))?;
+
+                    let view_desc = crate::image::ImageViewDescriptor::default();
+                    let view = image
+                        .create_image_view(&view_desc)
+                        .map_err(|e| mlua::Error::RuntimeError(format!("Failed to create image view: {e}")))?;
+
+                    let lua_view = crate::interpreter::wrappers::image_view::LuaImageView(view);
+                    Ok(lua_view)
+                },
+            )
+            .map_err(|e| InterpreterError::RuntimeError {
+                msg: format!("Failed to create create_image_view closure: {e}"),
+            })?;
+
+        globals
+            .set("create_image_view", create_image_view_fn)
+            .map_err(|e| InterpreterError::RuntimeError {
+                msg: format!("Failed to register create_image_view global: {e}"),
             })?;
 
         Ok(())

@@ -30,3 +30,12 @@
 * Still want to do render nodes.
 * Check dispatching command buffers from different threads to queues.
 * Check Slang shaders
+
+## 2026-06-20
+
+* Review interpreter mod.r
+  - submodule for global functions.
+  - Enum from string implementations.
+* For compute nodes
+  - consider convention for 1D, 2D, 3D shapes. Currently using `resolution` for 2D.
+* Support UVec2 constants. See ImagePyramid_r8ui.luau

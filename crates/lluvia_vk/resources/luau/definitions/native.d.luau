@@ -89,13 +89,21 @@ declare function ComputeNodeDescriptorBuilder(): ComputeNodeDescriptorBuilder
 
 
 -----------------------------------------------------------
+declare class ImageView
+    width: number
+    height: number
+    depth: number
+    channel_count: number
+end
+
+-----------------------------------------------------------
 declare class ComputeNode
     push_constants: PushConstants?
 
     function get_port(self, name: string): any
     function set_constant(self, name: string, value: any): nil
     function get_constant(self, name: string): any
-    function bind(self, name: string, obj: Buffer): nil
+    function bind(self, name: string, obj: Buffer | ImageView): nil
     function init(self): nil
 end
 
@@ -131,7 +139,7 @@ declare class ContainerNode
     function set_constant(self, name: string, value: any): nil
     function get_constants(self): { [string]: any }
     function get_port(self, name: string): any
-    function bind(self, name: string, obj: Buffer): nil
+    function bind(self, name: string, obj: Buffer | ImageView): nil
     function add_node(self, name: string, child: ComputeNode | ContainerNode): nil
     function get_node(self, name: string): ComputeNode | ContainerNode | nil
     function init(self): nil
@@ -139,6 +147,7 @@ end
 
 declare function create_compute_node(builder_name: string, args: Arguments?): ComputeNode
 declare function create_container_node(builder_name: string, args: Arguments?): ContainerNode
+declare function create_image_view(width: number, height: number, depth: number, channel_count: number, channel_type: string): ImageView
 
 -----------------------------------------------------------
 declare class CommandBuffer
