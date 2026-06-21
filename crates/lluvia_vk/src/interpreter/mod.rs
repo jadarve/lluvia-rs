@@ -2,6 +2,7 @@ pub(crate) mod wrappers;
 
 use crate::interpreter::wrappers::compute_node::LuaComputeNode;
 use crate::math;
+use std::str::FromStr;
 use std::sync::{Arc, Weak};
 use thiserror::Error;
 
@@ -641,36 +642,11 @@ impl Interpreter {
                         .upgrade()
                         .ok_or_else(|| mlua::Error::RuntimeError("Session has been dropped".to_string()))?;
 
-                    let channel_count = match channel_count {
-                        1 => crate::image::ChannelCount::C1,
-                        2 => crate::image::ChannelCount::C2,
-                        3 => crate::image::ChannelCount::C3,
-                        4 => crate::image::ChannelCount::C4,
-                        _ => {
-                            return Err(mlua::Error::RuntimeError(format!(
-                                "Invalid channel count: {channel_count}"
-                            )));
-                        }
-                    };
+                    let channel_count = crate::image::ChannelCount::try_from(channel_count)
+                        .map_err(|e| mlua::Error::RuntimeError(e.to_string()))?;
 
-                    let channel_type = match channel_type_str.as_str() {
-                        "Uint8" => crate::image::ChannelType::Uint8,
-                        "Int8" => crate::image::ChannelType::Int8,
-                        "Uint16" => crate::image::ChannelType::Uint16,
-                        "Int16" => crate::image::ChannelType::Int16,
-                        "Float16" => crate::image::ChannelType::Float16,
-                        "Uint32" => crate::image::ChannelType::Uint32,
-                        "Int32" => crate::image::ChannelType::Int32,
-                        "Float32" => crate::image::ChannelType::Float32,
-                        "Uint64" => crate::image::ChannelType::Uint64,
-                        "Int64" => crate::image::ChannelType::Int64,
-                        "Float64" => crate::image::ChannelType::Float64,
-                        _ => {
-                            return Err(mlua::Error::RuntimeError(format!(
-                                "Invalid channel type: {channel_type_str}"
-                            )));
-                        }
-                    };
+                    let channel_type = crate::image::ChannelType::from_str(&channel_type_str)
+                        .map_err(|e| mlua::Error::RuntimeError(e.to_string()))?;
 
                     let desc = crate::image::ImageDescriptor::builder()
                         .width(width)

@@ -14,6 +14,8 @@ use vulkano::image::view::{ImageView as VkImageView, ImageViewCreateInfo};
 use vulkano::image::{Image as VkImage, ImageCreateInfo, ImageType, ImageUsage};
 use vulkano::memory::allocator::{AllocationCreateInfo, MemoryTypeFilter, StandardMemoryAllocator};
 
+use strum::{Display, EnumString};
+
 #[derive(Error, Debug)]
 pub enum ImageError {
     #[error("Image creation failed: {0}")]
@@ -24,6 +26,9 @@ pub enum ImageError {
 
     #[error("Invalid image descriptor: {0}")]
     InvalidDescriptor(String),
+
+    #[error("Invalid channel count: {0}")]
+    InvalidChannelCount(u32),
 }
 
 // ---------------------------------------------------------------------------
@@ -31,7 +36,7 @@ pub enum ImageError {
 // ---------------------------------------------------------------------------
 
 /// Supported image channel types.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumString, Display)]
 pub enum ChannelType {
     Uint8,
     Int8,
@@ -66,6 +71,20 @@ pub enum ChannelCount {
     C2 = 2,
     C3 = 3,
     C4 = 4,
+}
+
+impl TryFrom<u32> for ChannelCount {
+    type Error = ImageError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(Self::C1),
+            2 => Ok(Self::C2),
+            3 => Ok(Self::C3),
+            4 => Ok(Self::C4),
+            _ => Err(ImageError::InvalidChannelCount(value)),
+        }
+    }
 }
 
 /// Maps (ChannelCount, ChannelType) → Vulkan Format, matching the C++

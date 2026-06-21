@@ -26,6 +26,7 @@ mlua = { workspace = true, features = [
 ] }
 thiserror = { workspace = true }
 vulkano = { workspace = true }
+strum = { workspace = true }
 
 [dev-dependencies]
 anyhow = { workspace = true }
