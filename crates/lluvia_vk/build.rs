@@ -12,9 +12,29 @@ fn main() {
     }
 
     // Tell cargo to rerun this script if anything in resources/ changes
-    println!("cargo:rerun-if-changed=resources");
+    declare_cargo_dir_changes(&resources_dir);
 
+    // then compile each shader
     compile_shaders(&resources_dir);
+}
+
+fn declare_cargo_dir_changes(dir: &Path) {
+    if !dir.is_dir() {
+        return;
+    }
+
+    for entry in fs::read_dir(dir).unwrap() {
+        let entry = entry.unwrap();
+        let path = entry.path();
+
+        if path.is_dir() {
+            declare_cargo_dir_changes(&path);
+        } else {
+            if path.extension().and_then(|ext| ext.to_str()) != Some("spv") {
+                println!("cargo:rerun-if-changed={}", path.display());
+            }
+        }
+    }
 }
 
 fn compile_shaders(dir: &Path) {
