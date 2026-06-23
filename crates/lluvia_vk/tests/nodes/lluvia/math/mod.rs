@@ -1,1 +1,1 @@
-mod image_normalize_uint_c1;
+mod image_normalizer_r8ui_r32f;
