@@ -11,7 +11,7 @@ type HornSchunckArguments = {
 }
 
 local builder: ll.ContainerNodeBuilder = {
-	name = "lluvia/opticalflow/HornSchunck/HornSchunck",
+	name = "lluvia/opticalflow/HornSchunck",
 	description = [[
         Horn and Schunck variational optical flow algorithm.
 
@@ -89,7 +89,7 @@ local builder: ll.ContainerNodeBuilder = {
 		node:add_node("CopyInGrayToInGrayOld", copyInGrayToInGrayOld)
 
 		-- 3. Image processor node
-		local imageProcessor = ll.create_compute_node("lluvia/opticalflow/HornSchunck/HornSchunck/ImageProcessor", {
+		local imageProcessor = ll.create_compute_node("lluvia/opticalflow/HornSchunck/ImageProcessor", {
 			resolution = UVec2(width, height),
 			alpha = alpha,
 			float_precision = float_precision,
@@ -109,7 +109,7 @@ local builder: ll.ContainerNodeBuilder = {
 		-- 5. Numeric iterations
 		for i = 1, iterations do
 			local numericIteration =
-				ll.create_compute_node("lluvia/opticalflow/HornSchunck/HornSchunck/NumericIteration", {
+				ll.create_compute_node("lluvia/opticalflow/HornSchunck/NumericIteration", {
 					resolution = UVec2(width, height),
 				})
 			numericIteration:bind("in_image_params", inImageParams)

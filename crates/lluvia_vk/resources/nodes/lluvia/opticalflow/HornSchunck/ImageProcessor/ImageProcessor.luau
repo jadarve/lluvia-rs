@@ -9,7 +9,7 @@ type ImageProcessorArguments = {
 }
 
 local builder: ll.ComptueNodeBuidler = {
-	name = "lluvia/opticalflow/HornSchunck/HornSchunck/ImageProcessor",
+	name = "lluvia/opticalflow/HornSchunck/ImageProcessor",
 	description = [[
         Computes the parameters from the input image sequence.
 
@@ -34,7 +34,7 @@ local builder: ll.ComptueNodeBuidler = {
 		local desc = ll.ComputeNodeDescriptorBuilder()
 			:function_name("main")
 			:global_shape(UVec3(parsed_args.resolution.x, parsed_args.resolution.y, 1))
-			:program(ll.load_program("lluvia/opticalflow/HornSchunck/HornSchunck/ImageProcessor/ImageProcessor"))
+			:program(ll.load_program("lluvia/opticalflow/HornSchunck/ImageProcessor/ImageProcessor"))
 			:add_port(PortDescriptor(0, "in_gray", ll.PortDirection.In, ll.PortType.ImageView))
 			:add_port(PortDescriptor(1, "in_gray_old", ll.PortDirection.In, ll.PortType.ImageView))
 			:add_port(PortDescriptor(2, "out_image_params", ll.PortDirection.Out, ll.PortType.ImageView))

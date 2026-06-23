@@ -29,10 +29,8 @@ fn declare_cargo_dir_changes(dir: &Path) {
 
         if path.is_dir() {
             declare_cargo_dir_changes(&path);
-        } else {
-            if path.extension().and_then(|ext| ext.to_str()) != Some("spv") {
-                println!("cargo:rerun-if-changed={}", path.display());
-            }
+        } else if path.extension().and_then(|ext| ext.to_str()) != Some("spv") {
+            println!("cargo:rerun-if-changed={}", path.display());
         }
     }
 }
