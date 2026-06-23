@@ -14,7 +14,7 @@ pub trait Repository: Sync + Send {
 // Repository impl
 ///////////////////////////////////////////////////////////////////////////////
 
-// Force rebuild for ImageNormalizer_r8ui_r32f
+// Force rebuild for HornSchunck layout change
 pub(crate) static NODES_DIR: include_dir::Dir = include_dir::include_dir!("$CARGO_MANIFEST_DIR/resources/nodes/");
 
 pub struct InternalRepository {}

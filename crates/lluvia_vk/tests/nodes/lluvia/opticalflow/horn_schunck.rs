@@ -45,8 +45,8 @@ fn test_horn_schunck_zeros() -> Result<()> {
 
     // Load dependencies
     session.load_compute_node_builder("lluvia/math/normalize/ImageNormalizer_r8ui_r32f")?;
-    session.load_compute_node_builder("lluvia/opticalflow/HornSchunck/ImageProcessor")?;
-    session.load_compute_node_builder("lluvia/opticalflow/HornSchunck/NumericIteration")?;
+    session.load_compute_node_builder("lluvia/opticalflow/HornSchunck/HornSchunck/ImageProcessor")?;
+    session.load_compute_node_builder("lluvia/opticalflow/HornSchunck/HornSchunck/NumericIteration")?;
 
     // Load the container node builder
     let builder = session.load_container_node_builder("lluvia/opticalflow/HornSchunck/HornSchunck")?;
@@ -159,8 +159,8 @@ fn test_horn_schunck_translation() -> Result<()> {
 
     // Load dependencies
     session.load_compute_node_builder("lluvia/math/normalize/ImageNormalizer_r8ui_r32f")?;
-    session.load_compute_node_builder("lluvia/opticalflow/HornSchunck/ImageProcessor")?;
-    session.load_compute_node_builder("lluvia/opticalflow/HornSchunck/NumericIteration")?;
+    session.load_compute_node_builder("lluvia/opticalflow/HornSchunck/HornSchunck/ImageProcessor")?;
+    session.load_compute_node_builder("lluvia/opticalflow/HornSchunck/HornSchunck/NumericIteration")?;
 
     let builder = session.load_container_node_builder("lluvia/opticalflow/HornSchunck/HornSchunck")?;
 

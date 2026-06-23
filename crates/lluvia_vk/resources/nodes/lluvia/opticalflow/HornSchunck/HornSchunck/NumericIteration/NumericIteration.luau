@@ -7,7 +7,7 @@ type NumericIterationArguments = {
 }
 
 local builder: ll.ComptueNodeBuidler = {
-	name = "lluvia/opticalflow/HornSchunck/NumericIteration",
+	name = "lluvia/opticalflow/HornSchunck/HornSchunck/NumericIteration",
 	description = [[
         Computes one numeric iteration for computing the optical flow.
 
@@ -24,7 +24,7 @@ local builder: ll.ComptueNodeBuidler = {
 		local desc = ll.ComputeNodeDescriptorBuilder()
 			:function_name("main")
 			:global_shape(UVec3(parsed_args.resolution.x, parsed_args.resolution.y, 1))
-			:program(ll.load_program("lluvia/opticalflow/HornSchunck/NumericIteration/NumericIteration"))
+			:program(ll.load_program("lluvia/opticalflow/HornSchunck/HornSchunck/NumericIteration/NumericIteration"))
 			:add_port(PortDescriptor(0, "in_image_params", ll.PortDirection.In, ll.PortType.ImageView))
 			:add_port(PortDescriptor(1, "in_flow", ll.PortDirection.In, ll.PortType.ImageView))
 			:add_port(PortDescriptor(2, "out_flow", ll.PortDirection.Out, ll.PortType.ImageView))
