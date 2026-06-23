@@ -108,9 +108,10 @@ local builder: ll.ContainerNodeBuilder = {
 
 		-- 5. Numeric iterations
 		for i = 1, iterations do
-			local numericIteration = ll.create_compute_node("lluvia/opticalflow/HornSchunck/HornSchunck/NumericIteration", {
-				resolution = UVec2(width, height),
-			})
+			local numericIteration =
+				ll.create_compute_node("lluvia/opticalflow/HornSchunck/HornSchunck/NumericIteration", {
+					resolution = UVec2(width, height),
+				})
 			numericIteration:bind("in_image_params", inImageParams)
 			numericIteration:bind("in_flow", inFlow)
 			numericIteration:bind("out_flow", outFlow)
@@ -123,12 +124,19 @@ local builder: ll.ContainerNodeBuilder = {
 		end
 
 		-- Close the ring of numeric iterations
-		local numericIterationFirst = node:get_node("NumericIteration_1")
-		local numericIterationLast = node:get_node("NumericIteration_" .. tostring(iterations))
-		numericIterationFirst:bind("in_flow", numericIterationLast:get_port("out_flow"))
+		local numericIterationFirst = node:get_node("NumericIteration_1") :: ComputeNode?
+		local numericIterationLast = node:get_node("NumericIteration_" .. tostring(iterations)) :: ComputeNode?
+
+		if numericIterationFirst and numericIterationLast then
+			local out_flow = numericIterationLast:get_port("out_flow")
+			if out_flow then
+				numericIterationFirst:bind("in_flow", out_flow)
+			end
+		end
 
 		-- Bind container outputs
-		node:bind("out_flow", numericIterationLast:get_port("out_flow"))
+		local out_flow = numericIterationLast and numericIterationLast:get_port("out_flow")
+		node:bind("out_flow", out_flow)
 		node:bind("out_gray", in_gray_old)
 	end,
 
