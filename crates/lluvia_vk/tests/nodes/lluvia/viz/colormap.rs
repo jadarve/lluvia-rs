@@ -87,24 +87,14 @@ fn test_colormap_float() -> Result<()> {
 }
 
 #[rstest]
-#[case("viridis")]
-#[case("plasma")]
-#[case("inferno")]
-#[case("magma")]
-#[case("cividis")]
-#[case("gray")]
-#[case("purples")]
-#[case("blues")]
-#[case("greens")]
-#[case("oranges")]
-#[case("reds")]
-#[case("spectral")]
-#[case("coolwarm")]
-#[case("bwr")]
-#[case("seismic")]
-#[case("twilight")]
-#[case("hsv")]
-fn test_colormap_from_image(#[case] colormap_name: &str) -> Result<()> {
+fn test_colormap_from_image(
+    #[values(
+        "viridis", "plasma", "inferno", "magma", "cividis", "gray", "purples", "blues", "greens", "oranges", "reds",
+        "spectral", "coolwarm", "bwr", "seismic", "twilight", "hsv"
+    )]
+    colormap_name: &str,
+    #[values(false, true)] reverse: bool,
+) -> Result<()> {
     let session = ll::Session::new(ll::SessionDescriptor::default())?;
 
     // Load reference input image using image crate
@@ -208,10 +198,12 @@ fn test_colormap_from_image(#[case] colormap_name: &str) -> Result<()> {
     let img_rgba_out = session.create_image(img_rgba_out_desc)?;
     let view_rgba_out = img_rgba_out.create_image_view(&view_desc)?;
 
+    let reverse_val = if reverse { 1.0f32 } else { 0.0f32 };
     let args_colormap: HashMap<String, Argument> = HashMap::from([
         ("colormap".to_string(), Argument::String(colormap_name.to_string())),
         ("min_value".to_string(), 0.0f32.into()),
         ("max_value".to_string(), 1.0f32.into()),
+        ("reverse".to_string(), reverse_val.into()),
     ]);
 
     let mut node_colormap = builder_colormap
@@ -240,7 +232,8 @@ fn test_colormap_from_image(#[case] colormap_name: &str) -> Result<()> {
 
     let output_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/test-data/results/colormap");
     std::fs::create_dir_all(&output_dir)?;
-    let output_path = output_dir.join(format!("mouse_{}.jpg", colormap_name));
+    let file_suffix = if reverse { "_r" } else { "" };
+    let output_path = output_dir.join(format!("mouse_{}{}.jpg", colormap_name, file_suffix));
     rgb_image.save(&output_path)?;
     assert!(output_path.exists());
 
