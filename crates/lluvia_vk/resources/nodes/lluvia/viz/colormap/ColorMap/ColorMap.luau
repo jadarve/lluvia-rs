@@ -59,7 +59,7 @@ local builder: ll.ContainerNodeBuilder = {
 		max_value: float, optional. Defaults to 1.0.
 			The maximum value of the input image.
 
-		alpha: float, optional. Defaults to 0.0.
+		alpha: float, optional. Defaults to 1.0.
 			The alpha value of the output image in range [0, 1].
 
 		reverse: float, optional. Defaults to 0.0.
@@ -67,11 +67,11 @@ local builder: ll.ContainerNodeBuilder = {
     ]],
 
 	build_descriptor = function(self, args: Arguments)
-		local parsed_args = { args :: any } :: ColorMapArguments
+		local parsed_args = args :: ColorMapArguments
 		local colormap = parsed_args.colormap or "viridis"
 		local min_value = parsed_args.min_value or 0.0
 		local max_value = parsed_args.max_value or 1.0
-		local alpha = parsed_args.alpha or 0.0
+		local alpha = parsed_args.alpha or 1.0
 		local reverse = parsed_args.reverse or 0.0
 
 		local desc = ll.ContainerNodeDescriptorBuilder()
