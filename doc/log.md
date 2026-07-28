@@ -39,3 +39,12 @@
 * For compute nodes
   - consider convention for 1D, 2D, 3D shapes. Currently using `resolution` for 2D.
 * Support UVec2 constants. See ImagePyramid_r8ui.luau
+
+## 2026-06-22
+
+* Run Horn Schunck algorithm on real images.
+  - Need Flow to color node to visualize results.
+
+## 2026-07-01
+
+* 

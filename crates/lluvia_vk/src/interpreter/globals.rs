@@ -130,6 +130,7 @@ fn create_compute_node_impl(
             crate::node::Argument::Vec3(x) => lua.create_userdata(x).map(mlua::Value::UserData)?,
             crate::node::Argument::UVec3(x) => lua.create_userdata(x).map(mlua::Value::UserData)?,
             crate::node::Argument::UVec2(x) => lua.create_userdata(x).map(mlua::Value::UserData)?,
+            crate::node::Argument::String(x) => lua.create_string(&x).map(mlua::Value::String)?,
         };
         lua_args.set(k, lua_val)?;
     }
@@ -245,6 +246,7 @@ fn create_container_node_impl(
             crate::node::Argument::Vec3(x) => lua.create_userdata(x).map(mlua::Value::UserData)?,
             crate::node::Argument::UVec3(x) => lua.create_userdata(x).map(mlua::Value::UserData)?,
             crate::node::Argument::UVec2(x) => lua.create_userdata(x).map(mlua::Value::UserData)?,
+            crate::node::Argument::String(x) => lua.create_string(&x).map(mlua::Value::String)?,
         };
         lua_args.set(k, lua_val)?;
     }
@@ -308,6 +310,143 @@ fn create_image_view_impl(
     Ok(lua_view)
 }
 
+fn from_base64_impl(
+    _lua: &mlua::Lua,
+    encoded: String,
+) -> Result<crate::interpreter::wrappers::vector_uint8::LuaVectorUint8, mlua::Error> {
+    use base64::prelude::*;
+    let cleaned: String = encoded.chars().filter(|c| !c.is_whitespace()).collect();
+    let decoded = BASE64_STANDARD
+        .decode(&cleaned)
+        .map_err(|e| mlua::Error::RuntimeError(format!("Failed to decode base64: {e:?}")))?;
+    Ok(crate::interpreter::wrappers::vector_uint8::LuaVectorUint8(decoded))
+}
+
+fn create_buffer_impl(
+    lua: &mlua::Lua,
+    (size, host_visible): (u64, bool),
+) -> Result<crate::interpreter::wrappers::buffer::LuaBuffer, mlua::Error> {
+    let weak = lua
+        .app_data_ref::<Weak<crate::session::Session>>()
+        .ok_or_else(|| mlua::Error::RuntimeError("Session not registered".to_string()))?;
+    let session = weak
+        .upgrade()
+        .ok_or_else(|| mlua::Error::RuntimeError("Session has been dropped".to_string()))?;
+
+    let buffer = if host_visible {
+        session.create_buffer_host_visible(size)
+    } else {
+        session.create_buffer_device_local(size)
+    }
+    .map_err(|e| mlua::Error::RuntimeError(e.to_string()))?;
+
+    Ok(crate::interpreter::wrappers::buffer::LuaBuffer(buffer))
+}
+
+fn create_image_impl(
+    lua: &mlua::Lua,
+    desc: mlua::UserDataRef<crate::image::ImageDescriptor>,
+) -> Result<crate::interpreter::wrappers::image::LuaImage, mlua::Error> {
+    let weak = lua
+        .app_data_ref::<Weak<crate::session::Session>>()
+        .ok_or_else(|| mlua::Error::RuntimeError("Session not registered".to_string()))?;
+    let session = weak
+        .upgrade()
+        .ok_or_else(|| mlua::Error::RuntimeError("Session has been dropped".to_string()))?;
+
+    let image = session
+        .create_image(desc.clone())
+        .map_err(|e| mlua::Error::RuntimeError(e.to_string()))?;
+    Ok(crate::interpreter::wrappers::image::LuaImage(image))
+}
+
+fn create_command_buffer_builder_impl(
+    lua: &mlua::Lua,
+) -> Result<crate::interpreter::wrappers::command_buffer::LuaOwnedCommandBufferBuilder, mlua::Error> {
+    let weak = lua
+        .app_data_ref::<Weak<crate::session::Session>>()
+        .ok_or_else(|| mlua::Error::RuntimeError("Session not registered".to_string()))?;
+    let session = weak
+        .upgrade()
+        .ok_or_else(|| mlua::Error::RuntimeError("Session has been dropped".to_string()))?;
+
+    let builder = session
+        .create_command_buffer_builder()
+        .map_err(|e| mlua::Error::RuntimeError(e.to_string()))?;
+
+    Ok(
+        crate::interpreter::wrappers::command_buffer::LuaOwnedCommandBufferBuilder(std::cell::RefCell::new(Some(
+            builder,
+        ))),
+    )
+}
+
+fn run_command_buffer_impl(
+    lua: &mlua::Lua,
+    cmd_buf: mlua::UserDataRef<crate::interpreter::wrappers::command_buffer::LuaCommandBuffer>,
+) -> Result<(), mlua::Error> {
+    let weak = lua
+        .app_data_ref::<Weak<crate::session::Session>>()
+        .ok_or_else(|| mlua::Error::RuntimeError("Session not registered".to_string()))?;
+    let session = weak
+        .upgrade()
+        .ok_or_else(|| mlua::Error::RuntimeError("Session has been dropped".to_string()))?;
+
+    session
+        .run(cmd_buf.0.clone())
+        .map_err(|e| mlua::Error::RuntimeError(e.to_string()))?;
+    Ok(())
+}
+
+fn create_image_descriptor_impl(
+    _lua: &mlua::Lua,
+    (depth, height, width, channel_count, channel_type_str): (u32, u32, u32, u32, String),
+) -> Result<crate::image::ImageDescriptor, mlua::Error> {
+    use crate::image::{ChannelCount, ChannelType};
+    use std::str::FromStr;
+
+    let channel_count = ChannelCount::try_from(channel_count).map_err(|e| mlua::Error::RuntimeError(e.to_string()))?;
+    let channel_type =
+        ChannelType::from_str(&channel_type_str).map_err(|e| mlua::Error::RuntimeError(e.to_string()))?;
+
+    let mut usage = vulkano::image::ImageUsage::SAMPLED
+        | vulkano::image::ImageUsage::TRANSFER_SRC
+        | vulkano::image::ImageUsage::TRANSFER_DST;
+
+    if height > 1 || depth > 1 {
+        usage |= vulkano::image::ImageUsage::STORAGE;
+    }
+
+    Ok(crate::image::ImageDescriptor {
+        width,
+        height,
+        depth,
+        channel_type,
+        channel_count,
+        usage,
+    })
+}
+
+fn create_image_view_descriptor_impl(
+    _lua: &mlua::Lua,
+    (address_mode, filter_mode, normalized_coords, is_sampled): (u32, u32, bool, bool),
+) -> Result<crate::image::ImageViewDescriptor, mlua::Error> {
+    use crate::image::{ImageAddressMode, ImageFilterMode};
+
+    let address_mode =
+        ImageAddressMode::try_from(address_mode).map_err(|e| mlua::Error::RuntimeError(e.to_string()))?;
+    let filter_mode = ImageFilterMode::try_from(filter_mode).map_err(|e| mlua::Error::RuntimeError(e.to_string()))?;
+
+    Ok(crate::image::ImageViewDescriptor {
+        address_mode_u: address_mode,
+        address_mode_v: address_mode,
+        address_mode_w: address_mode,
+        filter_mode,
+        normalized_coordinates: normalized_coords,
+        is_sampled,
+    })
+}
+
 /// Injects native globals that resolve through the stored weak Session.
 pub(crate) fn register_session_globals(lua: &mlua::Lua) -> Result<(), InterpreterError> {
     let globals = lua.globals();
@@ -366,6 +505,102 @@ pub(crate) fn register_session_globals(lua: &mlua::Lua) -> Result<(), Interprete
         .set("create_image_view", create_image_view_fn)
         .map_err(|e| InterpreterError::RuntimeError {
             msg: format!("Failed to register create_image_view global: {e}"),
+        })?;
+
+    let from_base64_fn = lua
+        .create_function(|lua, encoded: String| from_base64_impl(lua, encoded))
+        .map_err(|e| InterpreterError::RuntimeError {
+            msg: format!("Failed to create from_base64 closure: {e}"),
+        })?;
+
+    globals
+        .set("from_base64", from_base64_fn)
+        .map_err(|e| InterpreterError::RuntimeError {
+            msg: format!("Failed to register from_base64 global: {e}"),
+        })?;
+
+    let create_buffer_fn = lua
+        .create_function(|lua, (size, host_visible): (u64, bool)| create_buffer_impl(lua, (size, host_visible)))
+        .map_err(|e| InterpreterError::RuntimeError {
+            msg: format!("Failed to create create_buffer closure: {e}"),
+        })?;
+
+    globals
+        .set("create_buffer", create_buffer_fn)
+        .map_err(|e| InterpreterError::RuntimeError {
+            msg: format!("Failed to register create_buffer global: {e}"),
+        })?;
+
+    let create_image_fn = lua
+        .create_function(|lua, desc: mlua::UserDataRef<crate::image::ImageDescriptor>| create_image_impl(lua, desc))
+        .map_err(|e| InterpreterError::RuntimeError {
+            msg: format!("Failed to create create_image closure: {e}"),
+        })?;
+
+    globals
+        .set("create_image", create_image_fn)
+        .map_err(|e| InterpreterError::RuntimeError {
+            msg: format!("Failed to register create_image global: {e}"),
+        })?;
+
+    let create_command_buffer_builder_fn = lua
+        .create_function(|lua, ()| create_command_buffer_builder_impl(lua))
+        .map_err(|e| InterpreterError::RuntimeError {
+            msg: format!("Failed to create create_command_buffer_builder closure: {e}"),
+        })?;
+
+    globals
+        .set("create_command_buffer_builder", create_command_buffer_builder_fn)
+        .map_err(|e| InterpreterError::RuntimeError {
+            msg: format!("Failed to register create_command_buffer_builder global: {e}"),
+        })?;
+
+    let run_command_buffer_fn = lua
+        .create_function(
+            |lua, cmd_buf: mlua::UserDataRef<crate::interpreter::wrappers::command_buffer::LuaCommandBuffer>| {
+                run_command_buffer_impl(lua, cmd_buf)
+            },
+        )
+        .map_err(|e| InterpreterError::RuntimeError {
+            msg: format!("Failed to create run_command_buffer closure: {e}"),
+        })?;
+
+    globals
+        .set("run_command_buffer", run_command_buffer_fn)
+        .map_err(|e| InterpreterError::RuntimeError {
+            msg: format!("Failed to register run_command_buffer global: {e}"),
+        })?;
+
+    let create_image_descriptor_fn = lua
+        .create_function(
+            |lua, (depth, height, width, channel_count, channel_type_str): (u32, u32, u32, u32, String)| {
+                create_image_descriptor_impl(lua, (depth, height, width, channel_count, channel_type_str))
+            },
+        )
+        .map_err(|e| InterpreterError::RuntimeError {
+            msg: format!("Failed to create create_image_descriptor closure: {e}"),
+        })?;
+
+    globals
+        .set("create_image_descriptor", create_image_descriptor_fn)
+        .map_err(|e| InterpreterError::RuntimeError {
+            msg: format!("Failed to register create_image_descriptor global: {e}"),
+        })?;
+
+    let create_image_view_descriptor_fn = lua
+        .create_function(
+            |lua, (address_mode, filter_mode, normalized_coords, is_sampled): (u32, u32, bool, bool)| {
+                create_image_view_descriptor_impl(lua, (address_mode, filter_mode, normalized_coords, is_sampled))
+            },
+        )
+        .map_err(|e| InterpreterError::RuntimeError {
+            msg: format!("Failed to create create_image_view_descriptor closure: {e}"),
+        })?;
+
+    globals
+        .set("create_image_view_descriptor", create_image_view_descriptor_fn)
+        .map_err(|e| InterpreterError::RuntimeError {
+            msg: format!("Failed to register create_image_view_descriptor global: {e}"),
         })?;
 
     Ok(())

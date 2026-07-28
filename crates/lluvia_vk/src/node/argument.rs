@@ -1,6 +1,6 @@
 use crate::math;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum Argument {
     F32(f32),
     I32(i32),
@@ -8,6 +8,7 @@ pub enum Argument {
     Vec3(math::Vec3),
     UVec3(math::UVec3),
     UVec2(math::UVec2),
+    String(String),
 }
 
 impl From<f32> for Argument {
@@ -43,5 +44,11 @@ impl From<math::UVec3> for Argument {
 impl From<math::UVec2> for Argument {
     fn from(value: math::UVec2) -> Self {
         Argument::UVec2(value)
+    }
+}
+
+impl From<String> for Argument {
+    fn from(value: String) -> Self {
+        Argument::String(value)
     }
 }

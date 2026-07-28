@@ -92,8 +92,127 @@ function module.create_container_node(builder_name: string, args: Arguments?): C
 	return create_container_node(builder_name, args)
 end
 
-function module.create_image_view(width: number, height: number, depth: number, channel_count: number, channel_type: string): ImageView
+function module.create_image_view(
+	width: number,
+	height: number,
+	depth: number,
+	channel_count: number,
+	channel_type: string
+): ImageView
 	return create_image_view(width, height, depth, channel_count, channel_type)
+end
+
+module.ChannelType = {
+	Uint8 = "Uint8",
+	Int8 = "Int8",
+	Uint16 = "Uint16",
+	Int16 = "Int16",
+	Float16 = "Float16",
+	Uint32 = "Uint32",
+	Int32 = "Int32",
+	Float32 = "Float32",
+}
+
+module.ChannelCount = {
+	C1 = 1,
+	C2 = 2,
+	C3 = 3,
+	C4 = 4,
+}
+
+module.ImageAddressMode = {
+	Repeat = 0,
+	MirroredRepeat = 1,
+	ClampToEdge = 2,
+	ClampToBorder = 3,
+}
+
+module.ImageFilterMode = {
+	Nearest = 0,
+	Linear = 1,
+}
+
+module.ImageUsageFlagBits = {
+	Storage = 1,
+	Sampled = 2,
+	TransferSrc = 4,
+	TransferDst = 8,
+}
+
+module.ImageLayout = {
+	General = 0,
+	TransferDstOptimal = 1,
+	ShaderReadOnlyOptimal = 2,
+}
+
+module.ImageDescriptor = {
+	new = function(
+		depth: number,
+		height: number,
+		width: number,
+		channel_count: number,
+		channel_type: string
+	): ImageDescriptor
+		return create_image_descriptor(depth, height, width, channel_count, channel_type)
+	end,
+}
+
+module.ImageViewDescriptor = {
+	new = function(
+		address_mode: number,
+		filter_mode: number,
+		normalized_coords: boolean,
+		is_sampled: boolean
+	): ImageViewDescriptor
+		return create_image_view_descriptor(address_mode, filter_mode, normalized_coords, is_sampled)
+	end,
+}
+
+function module.fromBase64(encoded: string): VectorUint8
+	return from_base64(encoded)
+end
+
+local host_memory = {
+	createBuffer = function(self, size: number)
+		return create_buffer(size, true)
+	end,
+}
+
+local device_memory = {
+	createImage = function(self, desc: ImageDescriptor)
+		return create_image(desc)
+	end,
+}
+
+function module.getHostMemory()
+	return host_memory
+end
+
+function module.getDeviceMemory()
+	return device_memory
+end
+
+function module.createCommandBuffer()
+	local builder = create_command_buffer_builder()
+	return {
+		builder = builder,
+		begin = function(self)
+			-- no-op
+		end,
+		changeImageLayout = function(self, image, layout)
+			-- no-op
+		end,
+		copyBufferToImage = function(self, src, dst)
+			self.builder:copy_buffer_to_image(src, dst)
+		end,
+		ends = function(self)
+			self.cmd_buffer = self.builder:build()
+		end,
+	}
+end
+
+function module.runCommandBuffer(cmdBuffer)
+	run_command_buffer(cmdBuffer.cmd_buffer)
 end
 
 return module

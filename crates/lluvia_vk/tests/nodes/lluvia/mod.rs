@@ -3,3 +3,4 @@ mod color;
 mod imgproc;
 mod math;
 mod opticalflow;
+mod viz;

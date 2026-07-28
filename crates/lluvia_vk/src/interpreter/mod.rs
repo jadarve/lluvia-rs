@@ -70,6 +70,18 @@ fn register_native_types(globals: &mlua::Table) -> Result<(), InterpreterError> 
             msg: format!("Error registering PushConstants: {e:?}"),
         })?;
 
+    globals
+        .set("ImageDescriptor", crate::image::ImageDescriptor::default())
+        .map_err(|e| InterpreterError::RuntimeError {
+            msg: format!("Error registering ImageDescriptor: {e:?}"),
+        })?;
+
+    globals
+        .set("ImageViewDescriptor", crate::image::ImageViewDescriptor::default())
+        .map_err(|e| InterpreterError::RuntimeError {
+            msg: format!("Error registering ImageViewDescriptor: {e:?}"),
+        })?;
+
     Ok(())
 }
 
@@ -175,6 +187,11 @@ impl crate::node::ComputeNodeBuilderImpl for LuauComputeNodeBuilder {
                         msg: format!("Failed to wrap UVec2: {e}"),
                     }
                 })?,
+                crate::node::Argument::String(x) => lua.create_string(&x).map(mlua::Value::String).map_err(|e| {
+                    crate::node::ComputeNodeBuilderError::RuntimeError {
+                        msg: format!("Failed to wrap String: {e}"),
+                    }
+                })?,
             };
             lua_args
                 .set(k, lua_val)
@@ -262,6 +279,11 @@ impl crate::node::ContainerNodeBuilderImpl for LuauContainerNodeBuilder {
                 crate::node::Argument::UVec2(x) => lua.create_userdata(x).map(mlua::Value::UserData).map_err(|e| {
                     crate::node::ComputeNodeBuilderError::RuntimeError {
                         msg: format!("Failed to wrap UVec2: {e}"),
+                    }
+                })?,
+                crate::node::Argument::String(x) => lua.create_string(&x).map(mlua::Value::String).map_err(|e| {
+                    crate::node::ComputeNodeBuilderError::RuntimeError {
+                        msg: format!("Failed to wrap String: {e}"),
                     }
                 })?,
             };

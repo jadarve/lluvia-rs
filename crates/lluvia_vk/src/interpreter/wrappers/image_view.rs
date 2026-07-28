@@ -12,5 +12,8 @@ impl mlua::UserData for LuaImageView {
         fields.add_field_method_get("channel_count", |_, this| {
             Ok(this.0.image().descriptor().channel_count as u32)
         });
+        fields.add_field_method_get("channel_type", |_, this| {
+            Ok(this.0.image().descriptor().channel_type.to_string())
+        });
     }
 }

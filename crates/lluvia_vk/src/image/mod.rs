@@ -283,6 +283,23 @@ pub enum ImageAddressMode {
     MirrorClampToEdge,
 }
 
+impl TryFrom<u32> for ImageAddressMode {
+    type Error = ImageError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Self::Repeat),
+            1 => Ok(Self::MirroredRepeat),
+            2 => Ok(Self::ClampToEdge),
+            3 => Ok(Self::ClampToBorder),
+            4 => Ok(Self::MirrorClampToEdge),
+            _ => Err(ImageError::InvalidDescriptor(format!(
+                "Invalid ImageAddressMode value: {value}"
+            ))),
+        }
+    }
+}
+
 impl From<ImageAddressMode> for SamplerAddressMode {
     fn from(m: ImageAddressMode) -> Self {
         match m {
@@ -300,6 +317,20 @@ impl From<ImageAddressMode> for SamplerAddressMode {
 pub enum ImageFilterMode {
     Nearest,
     Linear,
+}
+
+impl TryFrom<u32> for ImageFilterMode {
+    type Error = ImageError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Self::Nearest),
+            1 => Ok(Self::Linear),
+            _ => Err(ImageError::InvalidDescriptor(format!(
+                "Invalid ImageFilterMode value: {value}"
+            ))),
+        }
+    }
 }
 
 impl From<ImageFilterMode> for Filter {
