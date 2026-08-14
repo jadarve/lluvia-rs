@@ -1,4 +1,4 @@
-#include <lluvia/core.slang>
+import lluvia.core;
 
 struct PushConsts
 {
@@ -10,8 +10,6 @@ PushConsts pushConsts;
 
 [[vk::binding(0, 0)]]
 RWStructuredBuffer<float> out_buffer;
-
-LLUVIA_WORKGROUP
 
 [shader("compute")]
 [numthreads(workgroup_x, workgroup_y, workgroup_z)]

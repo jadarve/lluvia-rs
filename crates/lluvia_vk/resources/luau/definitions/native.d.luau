@@ -45,6 +45,7 @@ declare function load_program(path: string): Program
 -----------------------------------------------------------
 declare class Buffer
     function size(self): number
+    function map_and_set_from_vector_uint8(self, data: VectorUint8): nil
 end
 
 -----------------------------------------------------------
@@ -89,13 +90,21 @@ declare function ComputeNodeDescriptorBuilder(): ComputeNodeDescriptorBuilder
 
 
 -----------------------------------------------------------
+declare class ImageView
+    width: number
+    height: number
+    depth: number
+    channel_count: number
+end
+
+-----------------------------------------------------------
 declare class ComputeNode
     push_constants: PushConstants?
 
     function get_port(self, name: string): any
     function set_constant(self, name: string, value: any): nil
     function get_constant(self, name: string): any
-    function bind(self, name: string, obj: Buffer): nil
+    function bind(self, name: string, obj: Buffer | ImageView): nil
     function init(self): nil
 end
 
@@ -131,7 +140,7 @@ declare class ContainerNode
     function set_constant(self, name: string, value: any): nil
     function get_constants(self): { [string]: any }
     function get_port(self, name: string): any
-    function bind(self, name: string, obj: Buffer): nil
+    function bind(self, name: string, obj: Buffer | ImageView): nil
     function add_node(self, name: string, child: ComputeNode | ContainerNode): nil
     function get_node(self, name: string): ComputeNode | ContainerNode | nil
     function init(self): nil
@@ -139,12 +148,40 @@ end
 
 declare function create_compute_node(builder_name: string, args: Arguments?): ComputeNode
 declare function create_container_node(builder_name: string, args: Arguments?): ContainerNode
+declare function create_image_view(width: number, height: number, depth: number, channel_count: number, channel_type: string): ImageView
 
 -----------------------------------------------------------
 declare class CommandBuffer
     function run(self, node: ComputeNode | ContainerNode): nil
 end
 
+-----------------------------------------------------------
+declare class VectorUint8
+    function size(self): number
+end
+
+declare class Image
+    function create_image_view(self, desc: ImageViewDescriptor): ImageView
+end
+
+declare class ImageDescriptor
+end
+
+declare class ImageViewDescriptor
+end
+
+declare class CommandBufferBuilder
+    function copy_buffer_to_image(self, src: Buffer, dst: Image): nil
+    function build(self): CommandBuffer
+end
+
+declare function from_base64(encoded: string): VectorUint8
+declare function create_buffer(size: number, host_visible: boolean): Buffer
+declare function create_image(desc: ImageDescriptor): Image
+declare function create_command_buffer_builder(): CommandBufferBuilder
+declare function run_command_buffer(cmd_buf: CommandBuffer): nil
+declare function create_image_descriptor(depth: number, height: number, width: number, channel_count: number, channel_type: string): ImageDescriptor
+declare function create_image_view_descriptor(address_mode: number, filter_mode: number, normalized_coords: boolean, is_sampled: boolean): ImageViewDescriptor
 
 -----------------------------------------------------------
 export type Argument = number | boolean | Vec3 | UVec3 | UVec2 | nil

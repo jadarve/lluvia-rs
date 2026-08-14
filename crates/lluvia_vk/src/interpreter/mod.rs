@@ -1,3 +1,4 @@
+pub(crate) mod globals;
 pub(crate) mod wrappers;
 
 use crate::interpreter::wrappers::compute_node::LuaComputeNode;
@@ -67,6 +68,18 @@ fn register_native_types(globals: &mlua::Table) -> Result<(), InterpreterError> 
         .set("PushConstants", crate::node::PushConstants::default())
         .map_err(|e| InterpreterError::RuntimeError {
             msg: format!("Error registering PushConstants: {e:?}"),
+        })?;
+
+    globals
+        .set("ImageDescriptor", crate::image::ImageDescriptor::default())
+        .map_err(|e| InterpreterError::RuntimeError {
+            msg: format!("Error registering ImageDescriptor: {e:?}"),
+        })?;
+
+    globals
+        .set("ImageViewDescriptor", crate::image::ImageViewDescriptor::default())
+        .map_err(|e| InterpreterError::RuntimeError {
+            msg: format!("Error registering ImageViewDescriptor: {e:?}"),
         })?;
 
     Ok(())
@@ -174,6 +187,11 @@ impl crate::node::ComputeNodeBuilderImpl for LuauComputeNodeBuilder {
                         msg: format!("Failed to wrap UVec2: {e}"),
                     }
                 })?,
+                crate::node::Argument::String(x) => lua.create_string(&x).map(mlua::Value::String).map_err(|e| {
+                    crate::node::ComputeNodeBuilderError::RuntimeError {
+                        msg: format!("Failed to wrap String: {e}"),
+                    }
+                })?,
             };
             lua_args
                 .set(k, lua_val)
@@ -263,6 +281,11 @@ impl crate::node::ContainerNodeBuilderImpl for LuauContainerNodeBuilder {
                         msg: format!("Failed to wrap UVec2: {e}"),
                     }
                 })?,
+                crate::node::Argument::String(x) => lua.create_string(&x).map(mlua::Value::String).map_err(|e| {
+                    crate::node::ComputeNodeBuilderError::RuntimeError {
+                        msg: format!("Failed to wrap String: {e}"),
+                    }
+                })?,
             };
             lua_args
                 .set(k, lua_val)
@@ -347,242 +370,7 @@ impl Interpreter {
 
     /// Injects native globals that resolve through the stored weak Session.
     fn register_session_globals(&self) -> Result<(), InterpreterError> {
-        let globals = self.lua.globals();
-
-        let load_program_fn = self
-            .lua
-            .create_function(|lua, path: String| {
-                let weak = lua
-                    .app_data_ref::<Weak<crate::session::Session>>()
-                    .ok_or_else(|| mlua::Error::RuntimeError("Session not registered".to_string()))?;
-
-                let session = weak
-                    .upgrade()
-                    .ok_or_else(|| mlua::Error::RuntimeError("Session has been dropped".to_string()))?;
-
-                session
-                    .load_program(&path)
-                    .map_err(|e| mlua::Error::RuntimeError(e.to_string()))
-            })
-            .map_err(|e| InterpreterError::RuntimeError {
-                msg: format!("Failed to create load_program closure: {e}"),
-            })?;
-
-        globals
-            .set("load_program", load_program_fn)
-            .map_err(|e| InterpreterError::RuntimeError {
-                msg: format!("Failed to register load_program global: {e}"),
-            })?;
-
-        let create_compute_node_fn = self
-            .lua
-            .create_function(|lua, (builder_name, args_val): (String, Option<mlua::Table>)| {
-                let weak = lua
-                    .app_data_ref::<Weak<crate::session::Session>>()
-                    .ok_or_else(|| mlua::Error::RuntimeError("Session not registered".to_string()))?;
-
-                let session = weak
-                    .upgrade()
-                    .ok_or_else(|| mlua::Error::RuntimeError("Session has been dropped".to_string()))?;
-
-                let mut args = std::collections::HashMap::new();
-                if let Some(table) = args_val {
-                    for pair in table.pairs::<String, mlua::Value>() {
-                        let (k, v) = pair?;
-                        let arg = match v {
-                            mlua::Value::Number(n) => {
-                                if n.fract() == 0.0 {
-                                    crate::node::Argument::I32(n as i32)
-                                } else {
-                                    crate::node::Argument::F32(n as f32)
-                                }
-                            }
-                            mlua::Value::Integer(i) => crate::node::Argument::I32(i as i32),
-                            mlua::Value::Boolean(b) => crate::node::Argument::Bool(b),
-                            _ => return Err(mlua::Error::RuntimeError("Unsupported argument type".to_string())),
-                        };
-                        args.insert(k, arg);
-                    }
-                }
-
-                // Resolve builder in the Lua VM directly without locking the interpreter mutex
-                let name = &builder_name;
-                let name_parts: Vec<&str> = name.split('/').collect();
-                let last_part = name_parts
-                    .last()
-                    .ok_or_else(|| mlua::Error::RuntimeError(format!("Invalid compute node builder name: {name}")))?;
-
-                let luau_path = format!("{name}/{last_part}.luau");
-
-                let luau_bytes = session
-                    .repositories
-                    .iter()
-                    .find_map(|repo| repo.load(&luau_path).ok())
-                    .ok_or_else(|| mlua::Error::RuntimeError(format!("Builder not found: {name}")))?;
-
-                let script_content = std::str::from_utf8(&luau_bytes)
-                    .map_err(|e| mlua::Error::RuntimeError(format!("Invalid Luau script content: {e:?}")))?;
-
-                lua.load(script_content).set_name("builder").exec()?;
-
-                let ll: mlua::Table = lua.load("return require('@lib/ll.luau')").eval()?;
-
-                let compute_node_builders: mlua::Table = ll.get("compute_node_builders")?;
-
-                let mut builder_val: mlua::Value = compute_node_builders.get(name.as_str())?;
-                if builder_val.is_nil() {
-                    let last_part = name.split('/').next_back().unwrap_or(name);
-                    builder_val = compute_node_builders.get(last_part)?;
-                }
-
-                if builder_val.is_nil() {
-                    return Err(mlua::Error::RuntimeError(format!(
-                        "Builder not found in compute_node_builders for name: {name}"
-                    )));
-                }
-
-                let builder_table = match builder_val {
-                    mlua::Value::Table(t) => t,
-                    _ => return Err(mlua::Error::RuntimeError("Builder is not a table".to_string())),
-                };
-
-                let build_descriptor_fn: mlua::Function = builder_table.get("build_descriptor")?;
-                let lua_args = lua.create_table()?;
-                for (k, v) in args {
-                    let lua_val = match v {
-                        crate::node::Argument::F32(x) => mlua::Value::Number(x as f64),
-                        crate::node::Argument::I32(x) => mlua::Value::Integer(x as i64),
-                        crate::node::Argument::Bool(x) => mlua::Value::Boolean(x),
-                        _ => return Err(mlua::Error::RuntimeError("Unsupported arg type".to_string())),
-                    };
-                    lua_args.set(k, lua_val)?;
-                }
-
-                let descriptor: mlua::UserDataRef<crate::node::ComputeNodeDescriptor> =
-                    build_descriptor_fn.call((builder_table.clone(), lua_args))?;
-                let compute_node = session
-                    .create_compute_node(descriptor.clone())
-                    .map_err(|e| mlua::Error::RuntimeError(format!("Failed to create compute node: {}", e)))?;
-
-                let lua_node =
-                    crate::interpreter::wrappers::compute_node::LuaComputeNode::new_owned(compute_node, builder_name);
-                Ok(lua_node)
-            })
-            .map_err(|e| InterpreterError::RuntimeError {
-                msg: format!("Failed to create create_compute_node closure: {e}"),
-            })?;
-
-        globals
-            .set("create_compute_node", create_compute_node_fn)
-            .map_err(|e| InterpreterError::RuntimeError {
-                msg: format!("Failed to register create_compute_node global: {e}"),
-            })?;
-
-        let create_container_node_fn = self
-            .lua
-            .create_function(|lua, (builder_name, args_val): (String, Option<mlua::Table>)| {
-                let weak = lua
-                    .app_data_ref::<Weak<crate::session::Session>>()
-                    .ok_or_else(|| mlua::Error::RuntimeError("Session not registered".to_string()))?;
-
-                let session = weak
-                    .upgrade()
-                    .ok_or_else(|| mlua::Error::RuntimeError("Session has been dropped".to_string()))?;
-
-                let mut args = std::collections::HashMap::new();
-                if let Some(table) = args_val {
-                    for pair in table.pairs::<String, mlua::Value>() {
-                        let (k, v) = pair?;
-                        let arg = match v {
-                            mlua::Value::Number(n) => {
-                                if n.fract() == 0.0 {
-                                    crate::node::Argument::I32(n as i32)
-                                } else {
-                                    crate::node::Argument::F32(n as f32)
-                                }
-                            }
-                            mlua::Value::Integer(i) => crate::node::Argument::I32(i as i32),
-                            mlua::Value::Boolean(b) => crate::node::Argument::Bool(b),
-                            _ => return Err(mlua::Error::RuntimeError("Unsupported argument type".to_string())),
-                        };
-                        args.insert(k, arg);
-                    }
-                }
-
-                // Resolve builder in the Lua VM directly without locking the interpreter mutex
-                let name = &builder_name;
-                let name_parts: Vec<&str> = name.split('/').collect();
-                let last_part = name_parts
-                    .last()
-                    .ok_or_else(|| mlua::Error::RuntimeError(format!("Invalid container node builder name: {name}")))?;
-
-                let luau_path = format!("{name}/{last_part}.luau");
-
-                let luau_bytes = session
-                    .repositories
-                    .iter()
-                    .find_map(|repo| repo.load(&luau_path).ok())
-                    .ok_or_else(|| mlua::Error::RuntimeError(format!("Builder not found: {name}")))?;
-
-                let script_content = std::str::from_utf8(&luau_bytes)
-                    .map_err(|e| mlua::Error::RuntimeError(format!("Invalid Luau script content: {e:?}")))?;
-
-                lua.load(script_content).set_name("builder").exec()?;
-
-                let ll: mlua::Table = lua.load("return require('@lib/ll.luau')").eval()?;
-
-                let container_node_builders: mlua::Table = ll.get("container_node_builders")?;
-
-                let mut builder_val: mlua::Value = container_node_builders.get(name.as_str())?;
-                if builder_val.is_nil() {
-                    let last_part = name.split('/').next_back().unwrap_or(name);
-                    builder_val = container_node_builders.get(last_part)?;
-                }
-
-                if builder_val.is_nil() {
-                    return Err(mlua::Error::RuntimeError(format!(
-                        "Builder not found in container_node_builders for name: {name}"
-                    )));
-                }
-
-                let builder_table = match builder_val {
-                    mlua::Value::Table(t) => t,
-                    _ => return Err(mlua::Error::RuntimeError("Builder is not a table".to_string())),
-                };
-
-                let build_descriptor_fn: mlua::Function = builder_table.get("build_descriptor")?;
-                let lua_args = lua.create_table()?;
-                for (k, v) in args {
-                    let lua_val = match v {
-                        crate::node::Argument::F32(x) => mlua::Value::Number(x as f64),
-                        crate::node::Argument::I32(x) => mlua::Value::Integer(x as i64),
-                        crate::node::Argument::Bool(x) => mlua::Value::Boolean(x),
-                        _ => return Err(mlua::Error::RuntimeError("Unsupported arg type".to_string())),
-                    };
-                    lua_args.set(k, lua_val)?;
-                }
-
-                let descriptor: mlua::UserDataRef<crate::node::ContainerNodeDescriptor> =
-                    build_descriptor_fn.call((builder_table.clone(), lua_args))?;
-                let container_node = session
-                    .create_container_node(descriptor.clone())
-                    .map_err(|e| mlua::Error::RuntimeError(format!("Failed to create container node: {}", e)))?;
-
-                let lua_node =
-                    crate::interpreter::wrappers::container_node::LuaContainerNode::new_owned(container_node);
-                Ok(lua_node)
-            })
-            .map_err(|e| InterpreterError::RuntimeError {
-                msg: format!("Failed to create create_container_node closure: {e}"),
-            })?;
-
-        globals
-            .set("create_container_node", create_container_node_fn)
-            .map_err(|e| InterpreterError::RuntimeError {
-                msg: format!("Failed to register create_container_node global: {e}"),
-            })?;
-
-        Ok(())
+        globals::register_session_globals(&self.lua)
     }
 
     /// Evaluates a Luau script in the interpreter's VM.

@@ -53,12 +53,19 @@ impl mlua::UserData for LuaContainerNode {
             Ok(())
         });
 
-        methods.add_method("get_port", |_, this, name: String| {
+        methods.add_method("get_port", |lua, this, name: String| {
             let node = unsafe { &*this.node_ptr };
-            if let Some(NodePort::Buffer(buf)) = node.port(&name) {
-                Ok(Some(crate::interpreter::wrappers::buffer::LuaBuffer(buf.clone())))
-            } else {
-                Ok(None)
+            match node.port(&name) {
+                Some(NodePort::Buffer(buf)) => {
+                    let ud = lua.create_userdata(crate::interpreter::wrappers::buffer::LuaBuffer(buf.clone()))?;
+                    Ok(mlua::Value::UserData(ud))
+                }
+                Some(NodePort::ImageView(view)) => {
+                    let ud =
+                        lua.create_userdata(crate::interpreter::wrappers::image_view::LuaImageView(view.clone()))?;
+                    Ok(mlua::Value::UserData(ud))
+                }
+                None => Ok(mlua::Value::Nil),
             }
         });
 
@@ -69,10 +76,14 @@ impl mlua::UserData for LuaContainerNode {
                     node.bind(&name, crate::node::NodePort::Buffer(lua_buf.0.clone()))
                         .map_err(|e| mlua::Error::RuntimeError(e.to_string()))?;
                     return Ok(());
+                } else if let Ok(lua_view) = ud.borrow::<crate::interpreter::wrappers::image_view::LuaImageView>() {
+                    node.bind(&name, crate::node::NodePort::ImageView(lua_view.0.clone()))
+                        .map_err(|e| mlua::Error::RuntimeError(e.to_string()))?;
+                    return Ok(());
                 }
             }
             Err(mlua::Error::RuntimeError(
-                "Expected a Buffer as the second argument".to_string(),
+                "Expected a Buffer or ImageView as the second argument".to_string(),
             ))
         });
 

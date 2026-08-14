@@ -172,16 +172,16 @@ impl ComputeNode {
             device.clone(),
             PipelineDescriptorSetLayoutCreateInfo::from_stages([&stage])
                 .into_pipeline_layout_create_info(device.clone())
-                .map_err(|e| ComputeNodeError::CreationFailed(e.to_string()))?,
+                .map_err(|e| ComputeNodeError::CreationFailed(format!("{e:?}")))?,
         )
-        .map_err(|e| ComputeNodeError::CreationFailed(e.to_string()))?;
+        .map_err(|e| ComputeNodeError::CreationFailed(format!("{e:?}")))?;
 
         let pipeline = ComputePipeline::new(
             device.clone(),
             None,
             ComputePipelineCreateInfo::stage_layout(stage, layout),
         )
-        .map_err(|e| ComputeNodeError::CreationFailed(e.to_string()))?;
+        .map_err(|e| ComputeNodeError::CreationFailed(format!("{e:?}")))?;
 
         Ok(Self {
             pipeline,
@@ -222,7 +222,13 @@ impl ComputeNode {
             if let Some(obj) = self.objects.get(&port.name) {
                 let write = match obj {
                     NodePort::Buffer(b) => WriteDescriptorSet::buffer(port.binding, b.inner().clone()),
-                    NodePort::ImageView(img) => WriteDescriptorSet::image_view(port.binding, img.view().clone()),
+                    NodePort::ImageView(img) => {
+                        if let Some(sampler) = img.sampler() {
+                            WriteDescriptorSet::image_view_sampler(port.binding, img.view().clone(), sampler.clone())
+                        } else {
+                            WriteDescriptorSet::image_view(port.binding, img.view().clone())
+                        }
+                    }
                 };
                 writes.push(write);
             }
@@ -234,7 +240,7 @@ impl ComputeNode {
         }
 
         let set = DescriptorSet::new(self.descriptor_set_allocator.clone(), layout.clone(), writes, [])
-            .map_err(|e| ComputeNodeError::CreationFailed(e.to_string()))?;
+            .map_err(|e| ComputeNodeError::CreationFailed(format!("{e:?}")))?;
 
         self.descriptor_set = Some(set);
         Ok(())

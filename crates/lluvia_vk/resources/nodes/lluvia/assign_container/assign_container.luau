@@ -18,6 +18,9 @@ local builder: ll.ContainerNodeBuilder = {
 
 		length: u32, required
 		  Length of the buffer to process
+
+		offset: f32, optional. Default to 0.0
+		  Offset to the values to assign.
     ]],
 
 	build_descriptor = function(self, args: Arguments)

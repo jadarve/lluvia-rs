@@ -33,11 +33,7 @@ local builder: ll.ComptueNodeBuidler = {
 		return desc
 	end,
 
-	on_node_init = function(self, node)
-
-		-- TODO: Need API to get ports in Luau to be able to set grid shape.
-		-- ImageView is not bound in Luau yet; grid shape will be configured from Rust
-	end,
+	on_node_init = function(self, node) end,
 }
 
 ll:register_compute_node_builder(builder)
