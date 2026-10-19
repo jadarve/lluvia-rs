@@ -2,6 +2,11 @@
 name = "lluvia_vk"
 version = "0.1.0"
 edition = "2024"
+license = "MIT OR Apache-2.0"
+description = "Vulkan implementation of Lluvia"
+homepage = "https://lluvia.ai"
+repository = "https://github.com/jadarve/lluvia-rs"
+readme = "README.md"
 build = "build.rs"
 include = [
     "src/**/*",
