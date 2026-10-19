@@ -6,7 +6,15 @@ license = "MIT OR Apache-2.0"
 description = "Media container library."
 homepage = "https://lluvia.ai"
 repository = "https://github.com/jadarve/lluvia-rs"
+documentation = "https://docs.rs/lluvia-media"
 readme = "README.md"
+keywords = ["media", "mpeg-ts", "transport-stream", "video", "containers"]
+categories = ["multimedia::video", "parser-implementations"]
+include = [
+    "src/**/*",
+    "Cargo.toml",
+    "README.md",
+]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
