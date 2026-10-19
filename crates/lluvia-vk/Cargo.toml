@@ -1,15 +1,23 @@
 [package]
-name = "lluvia_vk"
-version = "0.1.0"
+name = "lluvia-vk"
+version = "0.0.1"
 edition = "2024"
+license = "MIT OR Apache-2.0"
+description = "A real-time computer vision engine implemented on top of Vulkan API."
+homepage = "https://lluvia.ai"
+repository = "https://github.com/jadarve/lluvia-rs"
+documentation = "https://docs.rs/lluvia-vk"
+readme = "README.md"
+keywords = ["vulkan", "gpu", "compute", "image-processing", "computer-vision"]
+categories = ["computer-vision", "graphics", "science"]
 build = "build.rs"
 include = [
     "src/**/*",
     "resources/**/*.luau",
     "resources/**/*.spv",
-    "resources/**/*.comp",
     "build.rs",
     "Cargo.toml",
+    "README.md",
 ]
 
 [dependencies]
