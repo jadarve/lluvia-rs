@@ -7,6 +7,12 @@ local builder: ll.ComptueNodeBuidler = {
 	description = [[
         This is a simple compute node that assigns the index of the element to the element.
         It uses the new ComputeNodeDescriptorBuilder.
+
+		Constants
+		---------
+
+		offset: float. Defaults to 0.0.
+			Offset to the values to assign.
     ]],
 
 	build_descriptor = function(self, args: Arguments)

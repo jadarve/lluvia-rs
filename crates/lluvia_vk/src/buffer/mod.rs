@@ -58,13 +58,19 @@ impl Buffer {
 
     /// Creates a device-local storage buffer (the most common case).
     pub(crate) fn new_device_local(allocator: Arc<StandardMemoryAllocator>, size: u64) -> Result<Self, BufferError> {
-        let usage = BufferUsage::STORAGE_BUFFER | BufferUsage::TRANSFER_SRC | BufferUsage::TRANSFER_DST;
+        let usage = BufferUsage::STORAGE_BUFFER
+            | BufferUsage::UNIFORM_BUFFER
+            | BufferUsage::TRANSFER_SRC
+            | BufferUsage::TRANSFER_DST;
         Self::new(allocator, size, usage, MemoryTypeFilter::PREFER_DEVICE)
     }
 
     /// Creates a host-visible storage buffer.
     pub(crate) fn new_host_visible(allocator: Arc<StandardMemoryAllocator>, size: u64) -> Result<Self, BufferError> {
-        let usage = BufferUsage::STORAGE_BUFFER | BufferUsage::TRANSFER_SRC | BufferUsage::TRANSFER_DST;
+        let usage = BufferUsage::STORAGE_BUFFER
+            | BufferUsage::UNIFORM_BUFFER
+            | BufferUsage::TRANSFER_SRC
+            | BufferUsage::TRANSFER_DST;
         Self::new(
             allocator,
             size,

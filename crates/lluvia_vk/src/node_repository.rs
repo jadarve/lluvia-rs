@@ -15,6 +15,7 @@ pub trait Repository: Sync + Send {
 ///////////////////////////////////////////////////////////////////////////////
 
 pub(crate) static NODES_DIR: include_dir::Dir = include_dir::include_dir!("$CARGO_MANIFEST_DIR/resources/nodes/");
+
 pub struct InternalRepository {}
 
 impl Repository for InternalRepository {

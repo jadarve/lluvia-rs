@@ -1,15 +1,15 @@
---!strict
+--strict
 
 local ll = require("@lib/ll.luau")
 
-type RGBA2GrayArguments = {
+type RGBA2BGRAArguments = {
 	resolution: UVec2,
 }
 
 local builder: ll.ComptueNodeBuidler = {
-	name = "lluvia/color/RGBA2Gray_slang",
+	name = "lluvia/color/RGBA2BGRA",
 	description = [[
-        Converts an RGBA image to gray scale using Slang.
+        Converts an RGBA image to BGRA format.
 
 		Arguments
 		---------
@@ -20,23 +20,20 @@ local builder: ll.ComptueNodeBuidler = {
     ]],
 
 	build_descriptor = function(self, args: Arguments)
-		local parsed_args = args :: RGBA2GrayArguments
+		local parsed_args = args :: RGBA2BGRAArguments
 
 		local desc = ll.ComputeNodeDescriptorBuilder()
 			:function_name("main")
 			:global_shape(UVec3(parsed_args.resolution.x, parsed_args.resolution.y, 1))
-			:program(ll.load_program("lluvia/color/RGBA2Gray_slang/RGBA2Gray_slang"))
+			:program(ll.load_program("lluvia/color/RGBA2BGRA/RGBA2BGRA"))
 			:add_port(PortDescriptor(0, "in_rgba", ll.PortDirection.In, ll.PortType.ImageView))
-			:add_port(PortDescriptor(1, "out_gray", ll.PortDirection.Out, ll.PortType.ImageView))
+			:add_port(PortDescriptor(1, "out_bgra", ll.PortDirection.Out, ll.PortType.ImageView))
 			:build()
 
 		return desc
 	end,
 
 	on_node_init = function(self, node)
-
-		-- TODO: Need API to get ports in Luau to be able to set grid shape.
-		-- ImageView is not bound in Luau yet; grid shape will be configured from Rust
 	end,
 }
 

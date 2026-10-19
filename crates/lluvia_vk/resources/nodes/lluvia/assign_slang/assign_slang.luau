@@ -17,6 +17,12 @@ local builder: ll.ComptueNodeBuidler = {
 
 		length: u32, required
 		  Length of the buffer to process
+
+		Constants
+		---------
+
+		offset: float. Defaults to 0.0.
+			Offset to the values to assign.
     ]],
 
 	build_descriptor = function(self, args: Arguments)

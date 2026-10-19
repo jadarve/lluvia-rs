@@ -1,10 +1,14 @@
 pub mod buffer;
+pub mod command_buffer;
 pub mod compute_node;
 pub mod compute_node_descriptor;
 pub mod container_node;
 pub mod container_node_descriptor;
+pub mod image;
+pub mod image_view;
 pub mod math;
 pub mod port_descriptor;
 pub mod program;
 pub mod push_constants;
 pub mod session;
+pub mod vector_uint8;
