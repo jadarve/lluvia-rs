@@ -8,7 +8,7 @@ name = "pyo3_lluvia_vk"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-lluvia_vk = { package = "lluvia-vk", path = "../../../crates/lluvia_vk" }
+lluvia_vk = { package = "lluvia-vk", path = "../../../crates/lluvia-vk" }
 pyo3 = { workspace = true }
 anyhow = { workspace = true }
 vulkano = { workspace = true }

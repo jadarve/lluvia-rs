@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/lluvia_vk",
+    "crates/lluvia-vk",
     "crates/lluvia_media",
     "crates/lluvia_webgpu",
     "bindings/python/pyo3-lluvia-vk",
