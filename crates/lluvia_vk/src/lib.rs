@@ -1,3 +1,5 @@
+//! Vulkan implementation of Lluvia in Rust for GPU compute and real-time image processing.
+
 pub mod buffer;
 pub mod command_buffer;
 pub mod image;

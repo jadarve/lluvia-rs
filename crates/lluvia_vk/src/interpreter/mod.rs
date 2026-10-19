@@ -354,14 +354,14 @@ impl Interpreter {
         Ok(Self { lua })
     }
 
-    /// Registers a back-reference to the owning [`Session`].
+    /// Registers a back-reference to the owning [`crate::session::Session`].
     ///
-    /// Stores a [`Weak<Session>`] in the Lua VM's app-data so that native
+    /// Stores a [`Weak<crate::session::Session>`] in the Lua VM's app-data so that native
     /// globals (e.g. `load_program`) can upgrade it at call time without
-    /// creating a strong reference cycle between [`Session`] and
+    /// creating a strong reference cycle between [`crate::session::Session`] and
     /// [`Interpreter`].
     ///
-    /// This must be called once, immediately after [`Session::new`] finishes
+    /// This must be called once, immediately after [`crate::session::Session::new`] finishes
     /// constructing `Arc<Session>`.
     pub fn set_session(&self, session: Weak<crate::session::Session>) -> Result<(), InterpreterError> {
         self.lua.set_app_data(session);
